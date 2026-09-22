@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#ff3131">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
+  <title>Bıyıklı Şef'in Pizzası · feast.</title>
+  <meta name="description" content="Bıyıklı Şef'le pizzayı hazırla, rekorunu kır — sonra gerçek lezzetleri feast'te keşfet.">
+  <meta property="og:title" content="Bıyıklı Şef'in Pizzası · feast.">
+  <meta property="og:description" content="60 saniyede en lezzetli pizzayı yap. Sen kaç puan alırsın?">
+  <meta property="og:image" content="assets/toss.webp">
+  <meta name="apple-itunes-app" content="app-id=6762010641">
+  <link rel="icon" href="assets/chef-head.webp" type="image/webp">
+  <link rel="apple-touch-icon" href="assets/chef-head.png">
+  <link rel="preload" href="assets/toss.webp" as="image" type="image/webp">
+  <link rel="preload" href="assets/chef1.webp" as="image" type="image/webp">
+  <link rel="modulepreload" href="js/game.js">
+  <link rel="modulepreload" href="js/logic.js">
+  <link rel="modulepreload" href="js/art.js">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="stage" aria-label="game"></canvas>
+
+  <div id="hud" hidden>
+    <div class="hud-bar"><div id="hud-time"></div></div>
+    <div class="hud-row">
+      <div class="hud-score"><span id="hud-score">0</span><em id="hud-mult" hidden>x2</em></div>
+      <div id="hud-magnet" class="hud-magnet" hidden data-i18n="magnet">BIYIK GÜCÜ!</div>
+      <div id="hud-lives" class="hud-lives" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <button id="btn-mute" class="btn-mute" type="button" aria-pressed="false" aria-label="Ses">🔊</button>
+
+  <!-- START -->
+  <section id="start" class="screen is-active">
+    <div class="card start-card">
+      <img class="logo" src="assets/logo.webp" alt="feast." width="120" height="33">
+      <img class="hero-chef" src="assets/toss.webp" alt="" width="317" height="480" fetchpriority="high">
+      <h1 data-i18n="title">Bıyıklı Şef'in Pizzası</h1>
+      <p class="sub" data-i18n="subtitle"></p>
+      <div class="legend">
+        <div class="legend-group good"><span data-i18n="howCatch"></span><div data-legend="catch"></div></div>
+        <div class="legend-group bad"><span data-i18n="howDodge"></span><div data-legend="dodge"></div></div>
+      </div>
+      <div class="legend-chips">
+        <div class="legend-bonus"><div data-legend="bonus"></div><span data-i18n="howBonus"></span></div>
+        <div class="legend-bonus legend-discover"><div data-legend="discover"></div><span data-i18n="howDiscover"></span></div>
+      </div>
+      <button id="btn-play" class="btn btn-primary btn-pulse" type="button" data-i18n="play">Oyna</button>
+      <p class="hint">👆 <span data-i18n="howDrag"></span></p>
+      <p id="start-best" class="best"></p>
+      <div class="ticker" aria-live="polite"><span id="ticker-text"></span></div>
+      <a class="link-app" data-store="start" href="#" target="_top" rel="noopener" data-i18n="getApp"></a>
+    </div>
+  </section>
+
+  <!-- PLAY (canvas + HUD only) -->
+  <section id="play" class="screen" aria-hidden="true"></section>
+
+  <!-- GAME OVER -->
+  <section id="over" class="screen scrollable">
+    <div class="card over-card">
+      <h2 id="over-title"></h2>
+      <div class="rank-badge"><img src="assets/chef3.webp" alt="" width="64" height="80"><span id="over-rank"></span></div>
+      <div class="score-big"><span id="over-score">0</span><small data-i18n="points"></small></div>
+      <p id="over-best" class="best"></p>
+      <p id="over-stats" class="stats"></p>
+      <p id="over-discovered" class="discovered" hidden></p>
+
+      <div class="craving">
+        <h3 data-i18n="cravingTitle"></h3>
+        <div id="craving-grid" class="craving-grid"></div>
+      </div>
+
+      <div id="cta" class="cta">
+        <div class="chef-sticker"><img src="assets/chef-head.webp" alt="" width="44" height="44"><span data-i18n="chefPick"></span></div>
+        <img class="cta-logo" src="assets/logo.webp" alt="feast." width="96" height="26">
+        <h3 id="cta-title" data-i18n="ctaTitle"></h3>
+        <p data-i18n="ctaBody"></p>
+        <ul class="cta-points">
+          <li><span aria-hidden="true">📍</span><span data-i18n="ctaPoint1"></span></li>
+          <li><span aria-hidden="true">📖</span><span data-i18n="ctaPoint2"></span></li>
+          <li><span aria-hidden="true">👥</span><span data-i18n="ctaPoint3"></span></li>
+        </ul>
+        <a class="btn btn-store" data-store="over" href="#" target="_top" rel="noopener">
+          <span aria-hidden="true">⬇</span> <span data-i18n="ctaButton" data-i18n-platform></span>
+        </a>
+        <p class="cta-free" data-store-only data-i18n="ctaFree"></p>
+        <ol class="cta-steps" data-store-only>
+          <li><b>1</b><span data-i18n="step1"></span></li>
+          <li><b>2</b><span data-i18n="step2" data-i18n-platform></span></li>
+          <li><b>3</b><span data-i18n="step3"></span></li>
+        </ol>
+        <div id="desktop-qr" class="desktop-qr" hidden>
+          <img src="assets/store-qr.svg" loading="lazy" alt="QR" width="148" height="148">
+          <span data-i18n="ctaDesktop"></span>
+        </div>
+      </div>
+
+      <div class="row">
+        <button id="btn-again" class="btn btn-ghost" type="button" data-i18n="again"></button>
+        <button id="btn-share" class="btn btn-ghost" type="button" data-i18n="share"></button>
+      </div>
+    </div>
+  </section>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

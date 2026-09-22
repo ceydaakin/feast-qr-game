@@ -1,0 +1,13 @@
+{
+  "name": "feast-qr-game",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "qr": "node tools/make-qr.mjs",
+    "serve": "python3 -m http.server 5174"
+  },
+  "devDependencies": {
+    "qrcode": "^1.5.4"
+  }
+}
