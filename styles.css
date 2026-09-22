@@ -99,6 +99,7 @@ h2 { font-size: 30px; color: var(--red); }
 .legend-group.bad { background: #ffe9e9; color: var(--red-deep); }
 .legend-group > div, .legend-bonus > div { display: flex; justify-content: center; }
 .legend-icon { width: 34px; height: 34px; }
+.legend-obstacle { width: auto; height: 32px; margin: 1px 2px; }
 .legend-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 8px; }
 .legend-discover { background: #ffe9e9 !important; color: var(--red-deep) !important; }
 .legend-bonus {
@@ -151,9 +152,20 @@ h2 { font-size: 30px; color: var(--red); }
 #hud {
   position: fixed;
   inset: 0 0 auto 0;
-  padding: calc(34px + var(--safe-top)) 14px 0;
+  padding: calc(30px + var(--safe-top)) 14px 0;
   pointer-events: none;
 }
+.hud-sub { margin-top: 4px; }
+.hud-pill {
+  font-size: 15px;
+  font-weight: 900;
+  background: rgba(255, 255, 255, .9);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-variant-numeric: tabular-nums;
+}
+.hud-pins { color: var(--red-deep); }
 .hud-bar {
   height: 10px;
   border: 2.5px solid var(--ink);

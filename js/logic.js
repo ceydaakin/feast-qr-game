@@ -12,8 +12,8 @@ export const GAME = Object.freeze({
   maxMultiplier: 5,
   magnetSec: 6,
   magnetPull: 520, // px/s horizontal pull toward the pizza while magnet is active
-  stageThresholds: [150, 400], // score where chef sprite advances sauce → cheese → toppings
-  rankThresholds: [150, 400, 800],
+  stageThresholds: [300, 900], // score where chef sprite advances sauce → cheese → toppings
+  rankThresholds: [300, 900, 1800],
   finalRushSec: 10,
 });
 
@@ -92,9 +92,9 @@ export function rankFor(score) {
   return stepIndex(score, GAME.rankThresholds);
 }
 
-export function pickLocale(languages) {
-  const first = (languages && languages[0]) || 'tr';
-  return first.toLowerCase().startsWith('tr') ? 'tr' : 'en';
+// The game is Turkish-first: English only when the link explicitly asks (?lang=en).
+export function pickLocale(langParam) {
+  return String(langParam || '').toLowerCase() === 'en' ? 'en' : 'tr';
 }
 
 export function pickItemKind(diff, rnd = Math.random) {

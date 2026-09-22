@@ -92,11 +92,13 @@ test('rankFor returns increasing ranks', () => {
   assert.ok(rankFor(300) >= rankFor(100));
 });
 
-test('pickLocale prefers Turkish only for tr languages', () => {
-  assert.equal(pickLocale(['tr-TR', 'en']), 'tr');
-  assert.equal(pickLocale(['en-US']), 'en');
-  assert.equal(pickLocale([]), 'tr');
+test('pickLocale is always Turkish unless ?lang=en is requested', () => {
+  assert.equal(pickLocale(null), 'tr');
   assert.equal(pickLocale(undefined), 'tr');
+  assert.equal(pickLocale('tr'), 'tr');
+  assert.equal(pickLocale('de'), 'tr');
+  assert.equal(pickLocale('en'), 'en');
+  assert.equal(pickLocale('EN'), 'en');
 });
 
 test('pickItemKind honours bonus, discover, bad and good bands', () => {

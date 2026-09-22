@@ -1,16 +1,20 @@
-# feast. — Bıyıklı Şef'in Pizzası (QR oyunu)
+# feast. — Bıyıklı Şef Koşuyor! (QR oyunu)
 
 QR → mobil web oyunu → oyun sonunda **feast'i indir** yönlendirmesi.
 Build yok, bağımlılık yok (runtime). Statik dosyalar; herhangi bir CDN / Cloudflare Pages'e atılır.
 
 ## Akış
 1. Kullanıcı masadaki/posterdeki QR'ı okutur → `https://<GAME_URL>/?src=qr`
-2. 60 sn oyun: Bıyıklı Şef pizzaya malzeme yakalar; ananas / ayakkabı / kılçık can götürür, altın bıyık mıknatıs verir. Puan arttıkça şefin pizzası sos → peynir → malzeme olarak ilerler.
-   - **Pazarlama katmanı:** Şef oyun boyunca konuşur (başlangıç, kombo, pizza aşaması, kötü malzeme, son 10 sn + ~8 sn'de bir feast. mesajı: "feast'i kesin indir, yeni mekânları ilk sen keşfet!"). Kırmızı **restoran pini** düşer → "YENİ MEKÂN!", +30 puan, "keşfedilen restoran" sayacı. Başlangıç ekranında feast. faydaları dönen ticker.
+2. **Sonsuz koşu (Subway Surfers tarzı):** Bıyıklı Şef 3 şeritli yemek sokağında koşar. Kaydır ← → şerit, ↑ zıpla, ↓ kay (ekranın sol/sağına dokunmak da şerit değiştirir; masaüstünde ok tuşları / WASD / boşluk).
+   Engeller: feast. pizza kutuları (zıpla), feast. pankartı (altından kay), feast. food truck (şerit değiştir). Malzemeler = coin, restoran pini = yeni mekân (+30), altın bıyık = mıknatıs. Hız zamanla artar; 3 çarpışmada oyun biter. Puan = metre + toplananlar × kombo.
+   - **Pazarlama katmanı:** Yol kenarında uygulamanın kendi mutfak fotoğraflarıyla "feast'te keşfet!" billboard'ları. Şef oyun boyunca konuşur (başlangıç, kombo, hızlanma, pizza aşaması, çarpışma + ~8 sn'de bir feast. mesajı: "feast'i kesin indir, yeni mekânları ilk sen keşfet!"). Kırmızı **restoran pini** düşer → "YENİ MEKÂN!", +30 puan, "keşfedilen restoran" sayacı. Başlangıç ekranında feast. faydaları dönen ticker.
 3. Oyun sonu: puan + rütbe + "📍 N yeni restoran keşfettin" + **"Canın ne çekiyor?"** mutfak seçimi (seçince indirme başlığı kişiselleşir: "Yakınındaki en iyi Döner mekânları feast'te!") + "Şefin tavsiyesi: Bunu kesin indir!" etiketi + **indirme kartı** (neden indirmeli maddeleri, platforma göre buton, 3 adımlı indirme rehberi).
    - iPhone/iPad → `https://apps.apple.com/tr/app/feast/id6762010641`
    - Android → Play Store `com.feast.mobile` (`referrer=utm_source=<src>` ile install kaynağı ölçülür)
    - Masaüstü → buton yerine QR (`?dl=1` → telefonda direkt mağazaya atar)
+
+## Dil
+Oyun **her cihazda Türkçe** açılır (tarayıcı dili ne olursa olsun). İngilizce sürüm için linke `?lang=en` ekle. Tüm metinler `js/i18n.js` içinde (`tr` kaynak, `en` çeviri).
 
 ## Lokal
 ```bash
@@ -37,9 +41,11 @@ Kampanya ayırmak için QR'ları farklı `src` ile üretebilirsin (ör. restoran
 ## Dosyalar
 | Dosya | Görev |
 |---|---|
-| `js/logic.js` | Saf kurallar: mağaza linki, puan/kombo, zorluk eğrisi, rütbe (test edilir) |
-| `js/game.js` | Oyun döngüsü, input, çarpışma, render |
-| `js/art.js` | Prosedürel malzeme çizimleri + arka plan |
+| `js/logic.js` | Saf kurallar: mağaza linki, puan/kombo, rütbe, item tanımları (test edilir) |
+| `js/runner-logic.js` | Koşu kuralları: hız eğrisi, satır üretimi, swipe algılama, çarpışma (test edilir) |
+| `js/game.js` | Koşu motoru: perspektif yol, döngü, input, çarpışma, render |
+| `js/scenery.js` | Engel sprite'ları, billboard'lar, İstanbul silueti |
+| `js/art.js` | Prosedürel malzeme çizimleri |
 | `js/main.js` | Ekranlar, HUD, mağaza CTA, paylaş, localStorage |
 | `js/i18n.js` | TR (varsayılan) / EN metinler + şefin konuşma satırları (`lines_*`) — pazarlama metinlerini buradan düzenle |
 | `tools/make-qr.mjs` | Markalı QR + poster üretici |

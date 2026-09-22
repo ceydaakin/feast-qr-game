@@ -1,12 +1,14 @@
 // UI wiring: screens, HUD, store CTA, persistence. Game rules live in logic.js.
 
 import {
-  GAME, ITEMS, CUISINES, detectPlatform, storeUrl, rankFor, pickLocale, pickLine,
+  ITEMS, CUISINES, detectPlatform, storeUrl, rankFor, pickLocale, pickLine,
 } from './logic.js';
 import { makeT } from './i18n.js';
 import { sfx } from './audio.js';
 import { createGame } from './game.js';
 import { renderSprite } from './art.js';
+import { buildObstacleSprites } from './scenery.js';
+import { RUN } from './runner-logic.js';
 
 const BEST_KEY = 'feast-game.best.v1';
 const MUTE_KEY = 'feast-game.muted.v1';
@@ -23,7 +25,7 @@ if (params.get('dl') === '1' && STORE_URL) {
   location.replace(STORE_URL);
 }
 
-const locale = pickLocale(navigator.languages || [navigator.language]);
+const locale = pickLocale(params.get('lang'));
 const t = makeT(locale);
 document.documentElement.lang = locale;
 
@@ -51,6 +53,12 @@ function applyStrings() {
     el.textContent = t(hasSpecific ? specific : key);
   });
   document.title = `${t('title')} · feast.`;
+  document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
+    el.setAttribute('aria-label', t(el.dataset.i18nAria));
+  });
+  document.querySelectorAll('[data-i18n-alt]').forEach((el) => {
+    el.alt = t(el.dataset.i18nAlt);
+  });
 }
 
 function renderLegend() {
@@ -58,7 +66,14 @@ function renderLegend() {
   const groups = { catch: [], dodge: [], bonus: [], discover: [] };
   Object.entries(ITEMS).forEach(([kind, def]) => groups[LEGEND_GROUP[def.type]].push(kind));
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const dodgeHost = $('[data-legend="dodge"]');
+  Object.values(buildObstacleSprites(40, dpr)).forEach((sprite) => {
+    sprite.className = 'legend-icon legend-obstacle';
+    sprite.setAttribute('aria-hidden', 'true');
+    dodgeHost.appendChild(sprite);
+  });
   Object.entries(groups).forEach(([key, kinds]) => {
+    if (key === 'dodge') return;
     const host = $(`[data-legend="${key}"]`);
     kinds.slice(0, key === 'catch' ? 4 : 3).forEach((kind) => {
       const c = renderSprite(kind, Math.round(40 * dpr), ITEMS[kind].type === 'bad');
@@ -175,8 +190,8 @@ function showScreen(id) {
 // Only touch the DOM when a value actually changed (HUD is fed every frame).
 function makeHud() {
   const els = {
-    score: $('#hud-score'), lives: $('#hud-lives'), bar: $('#hud-time'),
-    mult: $('#hud-mult'), magnet: $('#hud-magnet'), wrap: $('#hud'),
+    score: $('#hud-score'), lives: $('#hud-lives'), meters: $('#hud-meters'),
+    pins: $('#hud-pins'), mult: $('#hud-mult'), magnet: $('#hud-magnet'),
   };
   let prev = {};
   return (h) => {
@@ -187,18 +202,16 @@ function makeHud() {
       els.score.classList.add('bump');
     }
     if (h.lives !== prev.lives) {
-      els.lives.textContent = '❤️'.repeat(Math.max(0, h.lives)) + '🤍'.repeat(GAME.lives - Math.max(0, h.lives));
+      els.lives.textContent = '❤️'.repeat(Math.max(0, h.lives)) + '🤍'.repeat(RUN.lives - Math.max(0, h.lives));
     }
-    const frac = h.timeLeft / GAME.durationSec;
-    els.bar.style.transform = `scaleX(${frac.toFixed(4)})`;
-    const rush = h.timeLeft <= GAME.finalRushSec;
-    if (rush !== prev.rush) els.wrap.classList.toggle('rush', rush);
+    if (h.meters !== prev.meters) els.meters.textContent = h.meters;
+    if (h.pins !== prev.pins) els.pins.textContent = h.pins;
     if (h.multiplier !== prev.multiplier) {
       els.mult.textContent = `x${h.multiplier}`;
       els.mult.hidden = h.multiplier <= 1;
     }
     if (h.magnet !== prev.magnet) els.magnet.hidden = !h.magnet;
-    prev = { ...h, rush };
+    prev = { ...h };
   };
 }
 
@@ -216,7 +229,7 @@ function countUp(el, to) {
 function showGameOver(result, best, isNewBest) {
   $('#over-title').textContent = t(`over_${result.reason}`);
   $('#over-rank').textContent = t('ranks')[rankFor(result.score)];
-  $('#over-stats').textContent = t('stats', { caught: result.caught, combo: result.maxCombo });
+  $('#over-stats').textContent = t('stats', { distance: result.distance, caught: result.caught });
   const disc = $('#over-discovered');
   disc.hidden = !result.discovered;
   disc.textContent = t('discovered', { n: result.discovered });
@@ -282,12 +295,17 @@ async function boot() {
   let best = Number(storage('get', BEST_KEY)) || 0;
   $('#start-best').textContent = best ? `${t('best')}: ${best}` : '';
 
-  const chefImages = await Promise.all(['assets/chef1.webp', 'assets/chef2.webp', 'assets/chef3.webp'].map(loadImage));
+  const [chefImages, cuisineImages] = await Promise.all([
+    Promise.all(['assets/chef1.webp', 'assets/chef2.webp', 'assets/chef3.webp'].map(loadImage)),
+    Promise.all(CUISINES.map((c) => loadImage(c.img))),
+  ]);
+  const billboards = CUISINES.map((c, i) => ({ img: cuisineImages[i], label: t(`cuisine_${c.id}`) }));
   let lastScore = 0;
 
   const game = createGame({
     canvas: $('#stage'),
     chefImages,
+    billboards,
     sfx,
     t,
     chatter: makeChatter(),
