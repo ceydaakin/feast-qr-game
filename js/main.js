@@ -1,14 +1,12 @@
 // UI wiring: screens, HUD, store CTA, persistence. Game rules live in logic.js.
 
 import {
-  ITEMS, CUISINES, detectPlatform, storeUrl, rankFor, pickLocale, pickLine,
+  CUISINES, detectPlatform, storeUrl, rankFor, pickLocale, pickLine,
 } from './logic.js';
 import { makeT } from './i18n.js';
 import { sfx } from './audio.js';
 import { createGame } from './game.js';
-import { renderSprite } from './art.js';
-import { buildObstacleSprites } from './scenery.js';
-import { RUN } from './runner-logic.js';
+import { buildLegendIcons } from './crowd-art.js';
 
 const BEST_KEY = 'feast-game.best.v1';
 const MUTE_KEY = 'feast-game.muted.v1';
@@ -62,26 +60,14 @@ function applyStrings() {
 }
 
 function renderLegend() {
-  const LEGEND_GROUP = { good: 'catch', bad: 'dodge', bonus: 'bonus', discover: 'discover' };
-  const groups = { catch: [], dodge: [], bonus: [], discover: [] };
-  Object.entries(ITEMS).forEach(([kind, def]) => groups[LEGEND_GROUP[def.type]].push(kind));
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const dodgeHost = $('[data-legend="dodge"]');
-  Object.values(buildObstacleSprites(40, dpr)).forEach((sprite) => {
-    sprite.className = 'legend-icon legend-obstacle';
+  const icons = buildLegendIcons(Math.min(window.devicePixelRatio || 1, 2));
+  const place = (host, sprites) => sprites.forEach((sprite) => {
+    sprite.className = 'legend-icon legend-wide';
     sprite.setAttribute('aria-hidden', 'true');
-    dodgeHost.appendChild(sprite);
+    $(`[data-legend="${host}"]`).appendChild(sprite);
   });
-  Object.entries(groups).forEach(([key, kinds]) => {
-    if (key === 'dodge') return;
-    const host = $(`[data-legend="${key}"]`);
-    kinds.slice(0, key === 'catch' ? 4 : 3).forEach((kind) => {
-      const c = renderSprite(kind, Math.round(40 * dpr), ITEMS[kind].type === 'bad');
-      c.className = 'legend-icon';
-      c.setAttribute('aria-hidden', 'true');
-      host.appendChild(c);
-    });
-  });
+  place('gates', [icons.gate, icons.gateBad]);
+  place('eaters', [icons.eater, icons.big]);
 }
 
 // Chef lines per game event, never repeating the previous line for that event.
@@ -177,7 +163,6 @@ function setupStoreLinks() {
     }
   });
   document.querySelectorAll('[data-store-only]').forEach((el) => { el.hidden = !STORE_URL; });
-  $('#desktop-qr').hidden = Boolean(STORE_URL);
 }
 
 function showScreen(id) {
@@ -190,8 +175,7 @@ function showScreen(id) {
 // Only touch the DOM when a value actually changed (HUD is fed every frame).
 function makeHud() {
   const els = {
-    score: $('#hud-score'), lives: $('#hud-lives'), meters: $('#hud-meters'),
-    pins: $('#hud-pins'), mult: $('#hud-mult'), magnet: $('#hud-magnet'),
+    score: $('#hud-score'), count: $('#hud-count'), meters: $('#hud-meters'), pins: $('#hud-pins'),
   };
   let prev = {};
   return (h) => {
@@ -201,16 +185,9 @@ function makeHud() {
       void els.score.offsetWidth;
       els.score.classList.add('bump');
     }
-    if (h.lives !== prev.lives) {
-      els.lives.textContent = '❤️'.repeat(Math.max(0, h.lives)) + '🤍'.repeat(RUN.lives - Math.max(0, h.lives));
-    }
+    if (h.count !== prev.count) els.count.textContent = h.count;
     if (h.meters !== prev.meters) els.meters.textContent = h.meters;
     if (h.pins !== prev.pins) els.pins.textContent = h.pins;
-    if (h.multiplier !== prev.multiplier) {
-      els.mult.textContent = `x${h.multiplier}`;
-      els.mult.hidden = h.multiplier <= 1;
-    }
-    if (h.magnet !== prev.magnet) els.magnet.hidden = !h.magnet;
     prev = { ...h };
   };
 }
@@ -229,7 +206,7 @@ function countUp(el, to) {
 function showGameOver(result, best, isNewBest) {
   $('#over-title').textContent = t(`over_${result.reason}`);
   $('#over-rank').textContent = t('ranks')[rankFor(result.score)];
-  $('#over-stats').textContent = t('stats', { distance: result.distance, caught: result.caught });
+  $('#over-stats').textContent = t('stats', { distance: result.distance, fed: result.fed, peak: result.peak });
   const disc = $('#over-discovered');
   disc.hidden = !result.discovered;
   disc.textContent = t('discovered', { n: result.discovered });
@@ -295,17 +272,13 @@ async function boot() {
   let best = Number(storage('get', BEST_KEY)) || 0;
   $('#start-best').textContent = best ? `${t('best')}: ${best}` : '';
 
-  const [chefImages, cuisineImages] = await Promise.all([
-    Promise.all(['assets/chef1.webp', 'assets/chef2.webp', 'assets/chef3.webp'].map(loadImage)),
-    Promise.all(CUISINES.map((c) => loadImage(c.img))),
-  ]);
-  const billboards = CUISINES.map((c, i) => ({ img: cuisineImages[i], label: t(`cuisine_${c.id}`) }));
+  const cuisineImages = await Promise.all(CUISINES.map((c) => loadImage(c.img)));
+  const places = CUISINES.map((c, i) => ({ img: cuisineImages[i], label: t(`cuisine_${c.id}`) }));
   let lastScore = 0;
 
   const game = createGame({
     canvas: $('#stage'),
-    chefImages,
-    billboards,
+    places,
     sfx,
     t,
     chatter: makeChatter(),

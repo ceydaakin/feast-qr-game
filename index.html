@@ -6,21 +6,22 @@
   <meta name="theme-color" content="#ff3131">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="format-detection" content="telephone=no">
-  <title>Bıyıklı Şef Koşuyor! · feast.</title>
-  <meta name="description" content="Bıyıklı Şef'le pizzayı hazırla, rekorunu kır — sonra gerçek lezzetleri feast'te keşfet.">
-  <meta property="og:title" content="Bıyıklı Şef Koşuyor! · feast.">
-  <meta property="og:description" content="Bıyıklı Şef'le sokakta koş, yeni mekânları keşfet. Sen kaç metre gidersin?">
+  <title>Şef Ordusu! · feast.</title>
+  <meta name="description" content="Bıyıklı Şef'in ekibini büyüt, aç kalabalığı doyur — sonra gerçek lezzetleri feast'te keşfet.">
+  <meta property="og:title" content="Şef Ordusu! · feast.">
+  <meta property="og:description" content="Kapılardan geç, şef ordunu büyüt, İstanbul'un aç kalabalığını doyur. Sen kaç kişiyi doyurursun?">
   <meta property="og:image" content="assets/toss.webp">
   <meta name="apple-itunes-app" content="app-id=6762010641">
   <link rel="icon" href="assets/chef-head.webp" type="image/webp">
   <link rel="apple-touch-icon" href="assets/chef-head.png">
   <link rel="preload" href="assets/toss.webp" as="image" type="image/webp">
-  <link rel="preload" href="assets/chef1.webp" as="image" type="image/webp">
   <link rel="modulepreload" href="js/game.js">
   <link rel="modulepreload" href="js/logic.js">
   <link rel="modulepreload" href="js/art.js">
-  <link rel="modulepreload" href="js/runner-logic.js">
+  <link rel="modulepreload" href="js/squad-logic.js">
   <link rel="modulepreload" href="js/scenery.js">
+  <link rel="modulepreload" href="js/crowd-art.js">
+  <link rel="modulepreload" href="js/fx.js">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -28,12 +29,11 @@
 
   <div id="hud" hidden>
     <div class="hud-row">
-      <div class="hud-score"><span id="hud-score">0</span><em id="hud-mult" hidden>x2</em></div>
-      <div id="hud-lives" class="hud-lives" aria-live="polite"></div>
+      <div class="hud-score"><span id="hud-score">0</span></div>
+      <div class="hud-squad" aria-live="polite">👨‍🍳 <span id="hud-count">0</span></div>
     </div>
     <div class="hud-row hud-sub">
       <div class="hud-pill"><span id="hud-meters">0</span> <span data-i18n="meters">m</span></div>
-      <div id="hud-magnet" class="hud-magnet" hidden data-i18n="magnet">BIYIK GÜCÜ!</div>
       <div class="hud-pill hud-pins">📍 <span id="hud-pins">0</span></div>
     </div>
   </div>
@@ -45,15 +45,15 @@
     <div class="card start-card">
       <img class="logo" src="assets/logo.webp" alt="feast." width="120" height="33">
       <img class="hero-chef" src="assets/toss.webp" alt="" width="317" height="480" fetchpriority="high">
-      <h1 data-i18n="title">Bıyıklı Şef Koşuyor!</h1>
+      <h1 data-i18n="title">Şef Ordusu!</h1>
       <p class="sub" data-i18n="subtitle"></p>
       <div class="legend">
-        <div class="legend-group good"><span data-i18n="howCatch"></span><div data-legend="catch"></div></div>
-        <div class="legend-group bad"><span data-i18n="howDodge"></span><div data-legend="dodge"></div></div>
+        <div class="legend-group good"><span data-i18n="howGates"></span><div data-legend="gates"></div></div>
+        <div class="legend-group bad"><span data-i18n="howFeed"></span><div data-legend="eaters"></div></div>
       </div>
       <div class="legend-chips">
-        <div class="legend-bonus"><div data-legend="bonus"></div><span data-i18n="howBonus"></span></div>
-        <div class="legend-bonus legend-discover"><div data-legend="discover"></div><span data-i18n="howDiscover"></span></div>
+        <div class="legend-bonus legend-discover"><span aria-hidden="true">🔒</span><span data-i18n="howDiscover"></span></div>
+        <div class="legend-bonus"><span aria-hidden="true">👑</span><span data-i18n="howBoss"></span></div>
       </div>
       <button id="btn-play" class="btn btn-primary btn-pulse" type="button" data-i18n="play">Oyna</button>
       <p class="hint">👆 <span data-i18n="howDrag"></span></p>
@@ -100,9 +100,13 @@
           <li><b>2</b><span data-i18n="step2" data-i18n-platform></span></li>
           <li><b>3</b><span data-i18n="step3"></span></li>
         </ol>
-        <div id="desktop-qr" class="desktop-qr" hidden>
-          <img src="assets/store-qr.svg" loading="lazy" alt="feast. uygulamasını indirme QR kodu" data-i18n-alt="altStoreQr" width="148" height="148">
-          <span data-i18n="ctaDesktop"></span>
+        <div class="app-qr">
+          <img src="assets/store-qr.svg" loading="lazy" alt="feast. uygulamasını indirme QR kodu" data-i18n-alt="altStoreQr" width="132" height="132">
+          <div class="app-qr-text">
+            <b data-i18n="qrTitle"></b>
+            <span data-i18n="qrBody"></span>
+            <small data-i18n="qrHint" data-i18n-platform></small>
+          </div>
         </div>
       </div>
 

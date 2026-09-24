@@ -1,59 +1,66 @@
-// Endless-runner engine (Subway Surfers style): 3 lanes, swipe to switch / jump / slide.
+// Crowd-shooter engine (Last Z style): drag to steer the chef squad, pass through
+// gates to grow it, throw food to feed hungry crowds and unlock restaurants.
 // Hot-path entities live in fixed object pools and are mutated in place on
 // purpose — allocating per frame would cause GC hitches on low-end phones.
 
-import { ITEMS, multiplierFor, chefStageFor } from './logic.js';
 import {
-  RUN, speedAt, rowGapAt, classifyGesture, nextLane, collides, pickRow, runScore,
-} from './runner-logic.js';
+  SQUAD, applyGate, gateLabel, isGoodGate, gateSide, formation, squadRadius, volleyDamage,
+  contactLoss, speedAt, pickSegment, blockReward, crowdScore, dragToX,
+} from './squad-logic.js';
 import { buildSpriteCache } from './art.js';
-import { buildObstacleSprites, buildBillboard, renderSky } from './scenery.js';
+import { buildBillboard, renderSky } from './scenery.js';
+import { buildCrowdSprites, buildGateSprites } from './crowd-art.js';
+import { createFx } from './fx.js';
 
 const MAX_DPR = 2;
 const MAX_DT = 1 / 30;
-const CHEF_ASPECT = 319 / 400;
-const BODY_CX = 0.4; // horizontal centre of the chef's body inside the sprite
-const COLORS = { gold: '#ffd23f', red: '#ff3131', ink: '#3a1d10', coin: '#ffb100' };
+const COLORS = { gold: '#ffd23f', red: '#ff3131', ink: '#3a1d10', green: '#2bb673', food: '#ffb100' };
 const BUBBLE = { life: 2.6, gap: 1.2, idleEvery: 8.5 };
 const FONT = 'ui-rounded, system-ui, -apple-system, sans-serif';
-const COIN_KINDS = Object.keys(ITEMS).filter((k) => ITEMS[k].type === 'good');
-const STRIPE = 2; // world units per curb stripe
-const DASH_EVERY = 4;
-const BILLBOARD_EVERY = 17;
-const SPEEDUP_EVERY = 15; // seconds between "faster!" callouts
+const FOOD = ['tomato', 'cheese', 'pepperoni', 'mushroom', 'olive', 'basil'];
+const SQUAD_Z = 2.2;
+const TILE = 2.5; // world units per road tile
+const BILLBOARD_EVERY = 21;
+const MAX_EMITTERS = 5;
+const KEY_SPEED = 3.2; // road units per second with arrow keys
+const HALF_W = { eater: 0.24, big: 0.42, block: 0.72, boss: 0.95 };
+const TARGETS = new Set(['eater', 'big', 'block', 'boss']);
+const OPENING = ['gates', 'horde', 'gates', 'block', 'horde', 'gates']; // teaches each mechanic once
 
 const pool = (n) => Array.from({ length: n }, () => ({ active: false }));
 const acquire = (arr) => arr.find((o) => !o.active) || null;
 
-export function createGame({ canvas, chefImages, billboards, sfx, t, chatter, onHud, onEnd }) {
+export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
   const ctx = canvas.getContext('2d', { alpha: false });
-  const objects = pool(90);
-  const particles = pool(80);
-  const popups = pool(12);
+  const fx = createFx(ctx);
+  const entities = pool(110);
+  const bullets = pool(150);
   const drawList = [];
-  const gesture = { active: false, x: 0, y: 0, t: 0, used: false };
+  const drag = { active: false, px: 0, startX: 0 };
+  const keys = { left: false, right: false };
 
   let W = 0; let H = 0; let dpr = 1;
-  let horizonY = 0; let groundY = 0; let laneW = 0; let chefH = 0; let chefW = 0;
-  let sky = null; let coinSprites = null; let obstacleSprites = null; let boardSprites = [];
+  let horizonY = 0; let groundY = 0; let laneW = 0;
+  let sky = null; let foodSprites = null; let art = null; let boardSprites = [];
+  let slots = []; let slotOrder = []; let slotsFor = -1;
   let rafId = 0; let lastTs = 0;
   let s = freshState();
 
   function freshState() {
     return {
-      running: false, over: false, elapsed: 0, dist: 0, itemPts: 0, score: 0,
-      combo: 0, maxCombo: 0, caught: 0, discovered: 0, lives: RUN.lives,
-      lane: 0, x: 0, jumpT: -1, slideT: -1, invulnT: 0, magnetT: 0,
-      nextRowAt: 20, nextBoardAt: 8, boardSide: 1, boardIdx: 0,
-      runPhase: 0, countdown: 0, shake: 0, flash: 0, speedTier: 0, stage: 0,
+      running: false, over: false, elapsed: 0, dist: 0, score: 0,
+      count: SQUAD.startCount, peak: SQUAD.startCount, fed: 0, discovered: 0,
+      x: 0, sx: 0, fireT: 0, segIdx: 0, nextSegAt: 6, nextBoardAt: 10, boardSide: 1, boardIdx: 0,
+      runPhase: 0, countdown: 0, shake: 0, flash: 0, bumpT: 0, nextFedCall: 25,
       bubble: null, bubbleGap: 0, idleT: BUBBLE.idleEvery,
     };
   }
 
   // ---------- projection ----------
-  const scaleAt = (z) => RUN.camDist / (z + RUN.camDist);
+  const scaleAt = (z) => SQUAD.camDist / (z + SQUAD.camDist);
   const yAt = (z) => horizonY + (groundY - horizonY) * scaleAt(z);
-  const xAt = (laneX, z) => W / 2 + laneX * laneW * scaleAt(z);
+  const xAt = (x, z) => W / 2 + x * laneW * scaleAt(z);
+  const roadPx = () => SQUAD.roadHalf * 2 * laneW * scaleAt(SQUAD_Z);
 
   function resize() {
     const rect = canvas.getBoundingClientRect();
@@ -62,69 +69,36 @@ export function createGame({ canvas, chefImages, billboards, sfx, t, chatter, on
     dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
-    horizonY = H * 0.34;
-    groundY = H * 0.9;
-    laneW = Math.min(W * 0.31, 170);
-    chefH = Math.min(laneW * 1.35, H * 0.26);
-    chefW = chefH * CHEF_ASPECT;
+    horizonY = H * 0.24;
+    groundY = H * 0.93;
+    laneW = Math.min(W * 0.31, 180);
     sky = renderSky(W, horizonY, dpr);
-    coinSprites = buildSpriteCache([...COIN_KINDS, 'pin', 'mustache'], Math.round(laneW * 0.5 * dpr), () => false);
-    obstacleSprites = buildObstacleSprites(laneW, dpr);
-    boardSprites = billboards.map((b) => buildBillboard(b.img, b.label, t('boardCta'), laneW, dpr));
+    foodSprites = buildSpriteCache(FOOD, Math.round(laneW * 0.26 * dpr), () => false);
+    art = buildCrowdSprites(laneW, dpr, places);
+    boardSprites = places.map((p) => buildBillboard(p.img, p.label, t('boardCta'), laneW, dpr));
+    entities.forEach((e) => {
+      if (e.active && e.cat === 'gates') e.sprites = buildGateSprites(e.gates, laneW, dpr);
+    });
     if (!s.running) draw();
   }
 
   // ---------- input ----------
-  function act(dir) {
-    if (!s.running || s.countdown > 0) return;
-    if (dir === 'left' || dir === 'right') {
-      const lane = nextLane(s.lane, dir);
-      if (lane !== s.lane) {
-        s.lane = lane;
-        sfx.tick();
-      }
-    } else if (dir === 'up') {
-      if (s.jumpT < 0) {
-        s.jumpT = 0;
-        s.slideT = -1;
-        sfx.catchGood(1);
-      }
-    } else if (dir === 'down') {
-      s.jumpT = -1; // fast-drop out of a jump, like the real thing
-      s.slideT = 0;
-      sfx.tick();
-    }
-  }
-
   function onDown(e) {
-    Object.assign(gesture, { active: true, x: e.clientX, y: e.clientY, t: performance.now(), used: false });
+    Object.assign(drag, { active: true, px: e.clientX, startX: s.x });
   }
   function onMove(e) {
-    if (!gesture.active || gesture.used) return;
-    const dir = classifyGesture(e.clientX - gesture.x, e.clientY - gesture.y, performance.now() - gesture.t);
-    // Fire as soon as the swipe is long enough — waiting for pointerup feels laggy.
-    if (dir !== 'tap' && dir !== 'none') {
-      gesture.used = true;
-      act(dir);
-    }
+    if (!drag.active || !s.running) return;
+    s.x = dragToX(drag.startX, e.clientX - drag.px, roadPx());
   }
-  function onUp(e) {
-    if (!gesture.active) return;
-    gesture.active = false;
-    if (gesture.used) return;
-    const dir = classifyGesture(e.clientX - gesture.x, e.clientY - gesture.y, performance.now() - gesture.t);
-    if (dir === 'tap') act(e.clientX < W / 2 ? 'left' : 'right');
-    else if (dir !== 'none') act(dir);
+  function onUp() {
+    drag.active = false;
   }
-  const KEYMAP = {
-    ArrowLeft: 'left', a: 'left', ArrowRight: 'right', d: 'right',
-    ArrowUp: 'up', w: 'up', ' ': 'up', ArrowDown: 'down', s: 'down',
-  };
+  const KEYMAP = { ArrowLeft: 'left', a: 'left', ArrowRight: 'right', d: 'right' };
   function onKey(e) {
     const dir = KEYMAP[e.key];
-    if (!dir || e.repeat) return;
+    if (!dir) return;
     e.preventDefault();
-    act(dir);
+    keys[dir] = e.type === 'keydown';
   }
   function onVisibility() {
     if (document.hidden) {
@@ -137,73 +111,70 @@ export function createGame({ canvas, chefImages, billboards, sfx, t, chatter, on
   }
 
   canvas.addEventListener('pointerdown', onDown);
-  canvas.addEventListener('pointermove', onMove);
-  canvas.addEventListener('pointerup', onUp);
-  canvas.addEventListener('pointercancel', onUp);
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
   window.addEventListener('keydown', onKey);
+  window.addEventListener('keyup', onKey);
   document.addEventListener('visibilitychange', onVisibility);
 
   // ---------- spawning ----------
   function spawn(props) {
-    const o = acquire(objects);
-    if (!o) return null;
-    Object.assign(o, { active: true, bob: Math.random() * 6.28 }, props);
-    return o;
+    const e = acquire(entities);
+    if (!e) return null;
+    Object.assign(e, { active: true, hitT: 0, bob: Math.random() * 6.28 }, props);
+    return e;
   }
 
-  function spawnRow() {
-    const row = pickRow(Math.random, Math.min(1, s.elapsed / 90));
-    const z = RUN.spawnZ;
-    row.obstacles.forEach((ob) => spawn({ kind: ob.type, cat: 'obstacle', lane: ob.lane, z }));
-    const gap = rowGapAt(speedAt(s.elapsed));
-    if (row.coinLane !== null) {
-      const sameLane = Boolean(row.special) && row.special.lane === row.coinLane;
-      const room = Math.floor(gap / RUN.coinSpacing) - (sameLane ? 1 : 0);
-      const count = Math.max(2, Math.min(RUN.coinsPerLine, room));
-      const kind = COIN_KINDS[Math.floor(Math.random() * COIN_KINDS.length)];
-      for (let i = 0; i < count; i++) {
-        spawn({ kind, cat: 'coin', lane: row.coinLane, z: z + (i + (sameLane ? 1 : 0)) * RUN.coinSpacing });
-      }
+  function spawnSegment() {
+    const idx = s.segIdx;
+    s.segIdx += 1;
+    const boss = idx >= SQUAD.firstBoss && (idx + 1) % SQUAD.bossEvery === 0;
+    const type = OPENING[idx] || (boss ? 'boss' : null);
+    const seg = pickSegment(Math.random, Math.min(1, s.elapsed / 100), s.count, type);
+    const z = SQUAD.spawnZ;
+    if (seg.type === 'gates') {
+      spawn({ cat: 'gates', x: 0, z, gates: seg.gates, sprites: buildGateSprites(seg.gates, laneW, dpr) });
+    } else if (seg.type === 'horde') {
+      seg.eaters.forEach((ea) => spawn({
+        cat: ea.big ? 'big' : 'eater', x: ea.x, z: z + ea.dz, hp: ea.hp, maxHp: ea.hp,
+        look: Math.floor(Math.random() * art.eaters.length),
+      }));
+    } else if (seg.type === 'block') {
+      spawn({ cat: 'block', x: seg.x, z, hp: seg.hp, maxHp: seg.hp, place: seg.cuisine % places.length });
+    } else {
+      spawn({ cat: 'boss', x: 0, z: z + 6, hp: seg.hp, maxHp: seg.hp });
+      fx.popup(W / 2, H * 0.3, t('bossIncoming'), COLORS.red, true);
+      say('boss', true);
     }
-    if (row.special) spawn({ kind: row.special.kind, cat: row.special.kind, lane: row.special.lane, z });
-    s.nextRowAt = s.dist + gap;
+    const extra = { horde: 7, boss: 16, block: 3 }[seg.type] || 0;
+    s.nextSegAt = s.dist + SQUAD.segmentGap + extra;
   }
 
   function spawnBoard() {
     if (boardSprites.length) {
-      spawn({ cat: 'board', sprite: boardSprites[s.boardIdx % boardSprites.length], lane: s.boardSide * 2.25, z: RUN.spawnZ });
+      spawn({ cat: 'board', sprite: boardSprites[s.boardIdx % boardSprites.length], x: s.boardSide * 2.45, z: SQUAD.spawnZ });
       s.boardIdx += 1;
       s.boardSide *= -1;
     }
     s.nextBoardAt = s.dist + BILLBOARD_EVERY;
   }
 
-  // ---------- effects ----------
-  function burst(x, y, color, count) {
-    for (let i = 0; i < count; i++) {
-      const p = acquire(particles);
-      if (!p) return;
-      const a = Math.random() * Math.PI * 2;
-      const sp = 80 + Math.random() * 200;
-      const life = 0.5 + Math.random() * 0.3;
-      Object.assign(p, {
-        active: true, x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 140,
-        life, max: life, color, size: 3 + Math.random() * 4,
+  function fire() {
+    const k = Math.min(slots.length, MAX_EMITTERS);
+    const dmg = volleyDamage(s.count, k);
+    for (let j = 0; j < k; j++) {
+      const b = acquire(bullets);
+      if (!b) return;
+      const slot = slots[Math.floor(Math.random() * slots.length)];
+      Object.assign(b, {
+        active: true, x: s.sx + slot.dx, z: SQUAD_Z + slot.dz + 0.3, dmg,
+        kind: FOOD[Math.floor(Math.random() * FOOD.length)], spin: Math.random() * 6.28,
       });
     }
   }
 
-  function popup(x, y, text, color, big = false) {
-    const p = acquire(popups);
-    if (!p) return;
-    const life = big ? 1.2 : 0.7;
-    Object.assign(p, { active: true, x, y, text, color, big, life, max: life });
-  }
-
-  function vibrate(ms) {
-    if (navigator.vibrate) navigator.vibrate(ms);
-  }
-
+  // ---------- chef chatter ----------
   function say(event, force = false) {
     if (!force && (s.bubble || s.bubbleGap > 0)) return;
     const text = chatter(event);
@@ -229,72 +200,87 @@ export function createGame({ canvas, chefImages, billboards, sfx, t, chatter, on
     return lines.slice(0, 3);
   }
 
-  // ---------- player state ----------
-  const jumpFrac = () => (s.jumpT < 0 ? 0 : Math.sin(Math.PI * Math.min(1, s.jumpT / RUN.jumpSec)));
-  const sliding = () => s.slideT >= 0;
-  const playerY = () => groundY - jumpFrac() * chefH * 0.8;
+  const vibrate = (ms) => { if (navigator.vibrate) navigator.vibrate(ms); };
+  const squadTopY = () => yAt(SQUAD_Z) - laneW * scaleAt(SQUAD_Z) * 0.75;
 
   // ---------- outcomes ----------
-  function collect(o) {
-    const px = xAt(s.x, 0);
-    const py = playerY() - chefH * 0.5;
-    if (o.cat === 'coin') {
-      const prev = multiplierFor(s.combo);
-      const pts = ITEMS[o.kind].points * prev;
-      s.itemPts += pts;
-      s.combo += 1;
-      s.caught += 1;
-      s.maxCombo = Math.max(s.maxCombo, s.combo);
-      sfx.catchGood(prev);
-      burst(px, py, COLORS.coin, 5);
-      popup(px, py - 20, `+${pts}`, '#ffffff');
-      if (multiplierFor(s.combo) > prev) {
-        popup(W / 2, H * 0.28, `x${multiplierFor(s.combo)} ${t('combo')}`, COLORS.red, true);
-        say('combo');
-      }
-    } else if (o.cat === 'pin') {
-      s.itemPts += ITEMS.pin.points;
-      s.discovered += 1;
-      sfx.bonus();
-      vibrate(25);
-      burst(px, py, COLORS.red, 18);
-      popup(W / 2, H * 0.3, t('newPlace'), COLORS.red, true);
-      say('discover', true);
-    } else if (o.cat === 'mustache') {
-      s.itemPts += ITEMS.mustache.points;
-      s.magnetT = RUN.magnetSec;
-      sfx.bonus();
-      vibrate(30);
-      burst(px, py, COLORS.gold, 22);
-      popup(W / 2, H * 0.3, t('magnet'), COLORS.gold, true);
-      say('magnet', true);
-    }
+  function setCount(next) {
+    s.count = Math.max(0, Math.min(SQUAD.maxCount, next));
+    s.peak = Math.max(s.peak, s.count);
+    s.bumpT = 0.25;
+    if (s.count <= 0) finish('squad');
   }
 
-  function crash(o) {
-    if (s.invulnT > 0) return;
-    s.lives -= 1;
-    s.combo = 0;
-    s.invulnT = RUN.invulnSec;
-    s.shake = 0.4;
+  function kill(e) {
+    const x = xAt(e.x, e.z);
+    const y = yAt(e.z) - laneW * scaleAt(e.z) * 0.4;
+    e.active = false;
+    if (e.cat === 'eater' || e.cat === 'big') {
+      s.fed += e.cat === 'big' ? 5 : 1;
+      sfx.catchGood(e.cat === 'big' ? 3 : 1);
+      fx.burst(x, y, '#ff6b8a', e.cat === 'big' ? 14 : 5, 0.7);
+      fx.popup(x, y - 10, e.cat === 'big' ? t('fedBig') : '😋', '#ffffff', e.cat === 'big');
+      if (s.fed >= s.nextFedCall) {
+        s.nextFedCall += 40;
+        say('fed');
+      }
+      return;
+    }
+    const reward = blockReward(s.count) * (e.cat === 'boss' ? 2 : 1);
+    setCount(s.count + reward);
+    sfx.bonus();
+    vibrate(35);
+    fx.burst(x, y, COLORS.gold, 26, 1.3);
+    fx.burst(x, y, COLORS.red, 14, 1.1);
+    s.shake = 0.25;
+    if (e.cat === 'boss') {
+      s.fed += 25;
+      fx.popup(W / 2, H * 0.3, t('bossDown'), COLORS.gold, true);
+      say('bossDown', true);
+    } else {
+      s.discovered += 1;
+      fx.popup(W / 2, H * 0.3, t('newPlaceNamed', { c: places[e.place].label }), COLORS.red, true);
+      say('discover', true);
+    }
+    fx.popup(W / 2, H * 0.38, `+${reward} 👨‍🍳`, COLORS.green, true);
+  }
+
+  function hurt(loss, e) {
+    setCount(s.count - loss);
+    s.shake = 0.35;
     s.flash = 1;
     sfx.hurt();
-    vibrate(120);
-    const px = xAt(s.x, 0);
-    burst(px, groundY - chefH * 0.6, COLORS.red, 16);
-    popup(px, groundY - chefH * 1.1, t(`hit_${o.kind}`), COLORS.red, true);
-    say('bad', true);
-    if (s.lives <= 0) finish('lives');
+    vibrate(90);
+    fx.burst(xAt(s.sx, SQUAD_Z), squadTopY(), COLORS.red, 12);
+    fx.popup(xAt(s.sx, SQUAD_Z), squadTopY() - 26, `-${loss} 👨‍🍳`, COLORS.red, true);
+    if (e.cat !== 'eater' || Math.random() < 0.3) say('bad');
+  }
+
+  function passGate(e) {
+    const side = gateSide(s.sx);
+    const gate = e.gates[side];
+    const before = s.count;
+    e.active = false;
+    const good = isGoodGate(gate);
+    setCount(applyGate(before, gate));
+    if (good) sfx.bonus();
+    else sfx.hurt();
+    vibrate(good ? 20 : 70);
+    const x = xAt(side ? 0.75 : -0.75, SQUAD_Z);
+    fx.burst(x, squadTopY(), good ? COLORS.green : COLORS.red, 18);
+    fx.popup(x, squadTopY() - 30, gateLabel(gate), good ? COLORS.green : COLORS.red, true);
+    say(good ? 'gateGood' : 'gateBad', good ? s.count >= 2 * before : true);
   }
 
   function finish(reason) {
     if (s.over) return;
     s.running = false;
     s.over = true;
+    s.score = crowdScore(s);
     sfx.gameOver();
     emitHud();
     onEnd({
-      score: s.score, caught: s.caught, maxCombo: s.maxCombo, discovered: s.discovered,
+      score: s.score, fed: s.fed, peak: s.peak, discovered: s.discovered,
       distance: Math.floor(s.dist), reason,
     });
   }
@@ -303,9 +289,14 @@ export function createGame({ canvas, chefImages, billboards, sfx, t, chatter, on
   function update(dt) {
     s.shake = Math.max(0, s.shake - dt);
     s.flash = Math.max(0, s.flash - dt * 2.5);
-    s.x += (s.lane - s.x) * (1 - Math.exp(-dt / (RUN.laneSwitchSec / 3)));
-    updateEffects(dt);
+    s.bumpT = Math.max(0, s.bumpT - dt);
+    fx.update(dt);
     updateBubble(dt);
+    if (keys.left !== keys.right) s.x = dragToX(s.x, (keys.left ? -1 : 1) * KEY_SPEED * dt * roadPx() / SQUAD.dragGain, roadPx());
+    // Keep the whole blob on the road: a big squad can't hug the curb.
+    const reach = Math.max(0.2, SQUAD.roadHalf - squadRadius(s.count) * 0.85);
+    s.x = Math.max(-reach, Math.min(reach, s.x));
+    s.sx += (s.x - s.sx) * (1 - Math.exp(-dt * 14));
 
     if (s.countdown > 0) {
       const before = Math.ceil(s.countdown);
@@ -319,57 +310,67 @@ export function createGame({ canvas, chefImages, billboards, sfx, t, chatter, on
     const speed = speedAt(s.elapsed);
     s.elapsed += dt;
     s.dist += speed * dt;
-    s.runPhase += dt * (8 + speed * 0.35);
-    s.invulnT = Math.max(0, s.invulnT - dt);
-    s.magnetT = Math.max(0, s.magnetT - dt);
-    if (s.jumpT >= 0) {
-      s.jumpT += dt;
-      if (s.jumpT >= RUN.jumpSec) s.jumpT = -1;
-    }
-    if (s.slideT >= 0) {
-      s.slideT += dt;
-      if (s.slideT >= RUN.slideSec) s.slideT = -1;
-    }
-
-    const tier = Math.floor(s.elapsed / SPEEDUP_EVERY);
-    if (tier > s.speedTier) {
-      s.speedTier = tier;
-      popup(W / 2, H * 0.24, t('faster'), COLORS.red, true);
-      say('speed');
-    }
+    s.runPhase += dt * 11;
     s.idleT -= dt;
     if (s.idleT <= 0) say('idle');
-
-    if (s.dist >= s.nextRowAt) spawnRow();
+    if (s.dist >= s.nextSegAt) spawnSegment();
     if (s.dist >= s.nextBoardAt) spawnBoard();
-    updateObjects(dt, speed);
 
-    s.score = runScore(s.dist, s.itemPts);
-    const stage = chefStageFor(s.score);
-    if (stage !== s.stage) {
-      s.stage = stage;
-      say(`stage${stage}`, true);
+    s.fireT -= dt;
+    while (s.fireT <= 0) {
+      s.fireT += SQUAD.fireEvery;
+      fire();
+    }
+    updateBullets(dt);
+    updateEntities(dt, speed);
+    if (s.running) s.score = crowdScore(s);
+  }
+
+  function hitTarget(b, prevZ) {
+    for (let i = 0; i < entities.length; i++) {
+      const e = entities[i];
+      if (!e.active || !TARGETS.has(e.cat)) continue;
+      if (e.z < prevZ - 0.4 || e.z > b.z + 0.4) continue;
+      if (Math.abs(e.x - b.x) > HALF_W[e.cat]) continue;
+      e.hp -= b.dmg;
+      e.hitT = 0.08;
+      if (e.hp <= 0) kill(e);
+      return true;
+    }
+    return false;
+  }
+
+  function updateBullets(dt) {
+    for (let i = 0; i < bullets.length; i++) {
+      const b = bullets[i];
+      if (!b.active) continue;
+      const prevZ = b.z;
+      b.z += SQUAD.bulletSpeed * dt;
+      b.spin += dt * 12;
+      if (b.z > SQUAD_Z + SQUAD.bulletRange || hitTarget(b, prevZ)) b.active = false;
     }
   }
 
-  function updateObjects(dt, speed) {
-    const player = { jump: jumpFrac(), sliding: sliding() };
-    for (let i = 0; i < objects.length; i++) {
-      const o = objects[i];
-      if (!o.active) continue;
-      const prevZ = o.z;
-      o.z -= speed * dt;
-      if (s.magnetT > 0 && o.cat === 'coin' && o.z < 30) o.lane += (s.x - o.lane) * Math.min(1, dt * 8);
-      const sameLane = Math.abs(o.lane - s.x) < 0.5;
-      if (o.cat === 'obstacle') {
-        if (prevZ > 0 && o.z <= 0 && sameLane && collides(o.kind, player)) crash(o);
-      } else if (o.cat !== 'board' && prevZ > 0.4 && o.z <= 0.4 && sameLane) {
-        o.active = false;
-        collect(o);
-        continue;
+  function updateEntities(dt, speed) {
+    const radius = squadRadius(s.count);
+    for (let i = 0; i < entities.length; i++) {
+      const e = entities[i];
+      if (!e.active) continue;
+      const prevZ = e.z;
+      e.hitT = Math.max(0, e.hitT - dt);
+      e.z -= speed * dt;
+      if (e.cat === 'eater' || e.cat === 'big') {
+        e.z -= SQUAD.eaterWalk * dt;
+        if (e.z < 22) e.x += (s.sx - e.x) * Math.min(1, dt * 0.45);
+      }
+      if (e.cat === 'gates') {
+        if (prevZ > SQUAD_Z && e.z <= SQUAD_Z) passGate(e);
+      } else if (TARGETS.has(e.cat) && e.z <= SQUAD_Z + radius * 0.8 && Math.abs(e.x - s.sx) < radius + HALF_W[e.cat]) {
+        e.active = false;
+        hurt(contactLoss(e.cat === 'eater' || e.cat === 'big' ? 'eater' : 'block', Math.ceil(e.hp)), e);
       }
       if (s.over) return;
-      if (o.z < -RUN.camDist * 0.7) o.active = false;
+      if (e.z < -SQUAD.camDist * 0.7) e.active = false;
     }
   }
 
@@ -383,23 +384,6 @@ export function createGame({ canvas, chefImages, billboards, sfx, t, chatter, on
     }
   }
 
-  function updateEffects(dt) {
-    particles.forEach((p) => {
-      if (!p.active) return;
-      p.life -= dt;
-      if (p.life <= 0) { p.active = false; return; }
-      p.vy += 700 * dt;
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-    });
-    popups.forEach((p) => {
-      if (!p.active) return;
-      p.life -= dt;
-      if (p.life <= 0) p.active = false;
-      else p.y -= 50 * dt;
-    });
-  }
-
   // ---------- render ----------
   function draw() {
     if (!sky) return;
@@ -409,8 +393,7 @@ export function createGame({ canvas, chefImages, billboards, sfx, t, chatter, on
     ctx.drawImage(sky, 0, 0, W, horizonY + 2);
     drawGround();
     drawWorld();
-    drawParticles();
-    drawPopups();
+    fx.draw();
     if (s.bubble) drawBubble();
     if (s.flash > 0) {
       ctx.fillStyle = `rgba(255,49,49,${s.flash * 0.22})`;
@@ -419,7 +402,6 @@ export function createGame({ canvas, chefImages, billboards, sfx, t, chatter, on
     if (s.countdown > 0) drawCountdown();
   }
 
-  // Band between two lane offsets from depth z0 to z1.
   function band(l0, l1, z0, z1) {
     ctx.beginPath();
     ctx.moveTo(xAt(l0, z0), yAt(z0));
@@ -431,35 +413,29 @@ export function createGame({ canvas, chefImages, billboards, sfx, t, chatter, on
   }
 
   function drawGround() {
-    const zNear = -RUN.camDist * 0.35; // projects below the bottom edge of the screen
-    const zFar = RUN.spawnZ + 40;
+    const zNear = -SQUAD.camDist * 0.2;
+    const zFar = SQUAD.spawnZ + 40;
+    const edge = SQUAD.roadHalf;
     ctx.fillStyle = '#f4d6b0';
     ctx.fillRect(0, horizonY, W, H - horizonY);
     ctx.fillStyle = '#e8c49a';
-    band(-6, -1.62, zNear, zFar);
-    band(1.62, 6, zNear, zFar);
-    ctx.fillStyle = '#5d5250';
-    band(-1.5, 1.5, zNear, zFar);
-    const off = s.dist % STRIPE;
-    for (let k = -1; k * STRIPE < RUN.spawnZ; k++) {
-      const z0 = k * STRIPE - off;
-      const z1 = z0 + STRIPE / 2;
+    band(-8, -edge - 0.12, zNear, zFar);
+    band(edge + 0.12, 8, zNear, zFar);
+    ctx.fillStyle = '#6a605d';
+    band(-edge, edge, zNear, zFar);
+    const off = s.dist % TILE;
+    for (let k = -1; k * TILE < SQUAD.spawnZ; k++) {
+      const z0 = k * TILE - off;
+      ctx.fillStyle = 'rgba(255,255,255,0.07)';
+      band(-edge, edge, z0, z0 + TILE / 2);
       ctx.fillStyle = COLORS.red;
-      band(-1.62, -1.5, z0, z1);
-      band(1.5, 1.62, z0, z1);
+      band(-edge - 0.12, -edge, z0, z0 + TILE / 2);
+      band(edge, edge + 0.12, z0, z0 + TILE / 2);
       ctx.fillStyle = '#ffffff';
-      band(-1.62, -1.5, z1, z1 + STRIPE / 2);
-      band(1.5, 1.62, z1, z1 + STRIPE / 2);
+      band(-edge - 0.12, -edge, z0 + TILE / 2, z0 + TILE);
+      band(edge, edge + 0.12, z0 + TILE / 2, z0 + TILE);
     }
-    const doff = s.dist % DASH_EVERY;
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    for (let k = -1; k * DASH_EVERY < RUN.spawnZ; k++) {
-      const z0 = k * DASH_EVERY - doff;
-      band(-0.53, -0.47, z0, z0 + 1.3);
-      band(0.47, 0.53, z0, z0 + 1.3);
-    }
-    // soft haze at the horizon hides pop-in
-    const hazeH = (groundY - horizonY) * 0.18;
+    const hazeH = (groundY - horizonY) * 0.16;
     const haze = ctx.createLinearGradient(0, horizonY, 0, horizonY + hazeH);
     haze.addColorStop(0, 'rgba(255,243,227,1)');
     haze.addColorStop(1, 'rgba(255,243,227,0)');
@@ -469,100 +445,147 @@ export function createGame({ canvas, chefImages, billboards, sfx, t, chatter, on
 
   function drawWorld() {
     drawList.length = 0;
-    objects.forEach((o) => { if (o.active && o.z > -RUN.camDist * 0.6) drawList.push(o); });
+    entities.forEach((e) => { if (e.active && e.z > -SQUAD.camDist * 0.6) drawList.push(e); });
     drawList.sort((a, b) => b.z - a.z);
-    let playerDrawn = false;
+    let squadDrawn = false;
     for (let i = 0; i < drawList.length; i++) {
-      const o = drawList[i];
-      if (!playerDrawn && o.z < 0) {
-        drawPlayer();
-        playerDrawn = true;
+      const e = drawList[i];
+      if (!squadDrawn && e.z < SQUAD_Z) {
+        drawBullets();
+        drawSquad();
+        squadDrawn = true;
       }
-      drawObject(o);
+      drawEntity(e);
     }
-    if (!playerDrawn) drawPlayer();
+    if (!squadDrawn) {
+      drawBullets();
+      drawSquad();
+    }
   }
 
-  function drawObject(o) {
-    const sc = scaleAt(o.z);
-    const x = xAt(o.lane, o.z);
-    const y = yAt(o.z);
-    if (o.cat === 'obstacle' || o.cat === 'board') {
-      const sp = o.cat === 'board' ? o.sprite : obstacleSprites[o.kind];
-      const w = (sp.width / dpr) * sc;
-      const h = (sp.height / dpr) * sc;
-      if (o.cat === 'obstacle') {
-        ctx.fillStyle = 'rgba(40,20,10,0.22)';
-        ctx.beginPath();
-        ctx.ellipse(x, y, w * 0.5, 6 * sc + 1, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.drawImage(sp, x - w / 2, y - h, w, h);
-      return;
-    }
-    const size = laneW * 0.5 * sc;
-    const lift = (0.35 + Math.sin(s.runPhase * 0.6 + o.bob) * 0.06) * laneW * sc;
-    ctx.fillStyle = 'rgba(40,20,10,0.15)';
+  function sprite(img, x, y, sc, extra = 1) {
+    const w = (img.width / dpr) * sc * extra;
+    const h = (img.height / dpr) * sc * extra;
+    ctx.drawImage(img, x - w / 2, y - h, w, h);
+    return h;
+  }
+
+  function shadow(x, y, rx, sc) {
+    ctx.fillStyle = 'rgba(40,20,10,0.2)';
     ctx.beginPath();
-    ctx.ellipse(x, y, size * 0.35, 4 * sc + 1, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, y, rx, 5 * sc + 1, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.drawImage(coinSprites[o.kind], x - size / 2, y - lift - size / 2, size, size);
   }
 
-  function drawPlayer() {
-    const img = chefImages[chefStageFor(s.score)];
-    const x = xAt(s.x, 0);
-    const jf = jumpFrac();
-    const slide = sliding();
-    const running = s.running && s.countdown <= 0;
-    const bob = running && !jf && !slide ? Math.abs(Math.sin(s.runPhase)) * chefH * 0.035 : 0;
-    const tilt = (s.lane - s.x) * 0.35 + (running ? Math.sin(s.runPhase * 0.5) * 0.04 : 0);
-    ctx.fillStyle = `rgba(40,20,10,${0.25 - jf * 0.12})`;
-    ctx.beginPath();
-    ctx.ellipse(x, groundY, chefW * 0.36 * (1 - jf * 0.35), 9, 0, 0, Math.PI * 2);
-    ctx.fill();
-    if (s.magnetT > 0) {
-      ctx.fillStyle = `rgba(255,210,63,${0.25 + Math.sin(performance.now() / 90) * 0.1})`;
-      ctx.beginPath();
-      ctx.ellipse(x, groundY - chefH * 0.45, chefW * 0.6, chefH * 0.6, 0, 0, Math.PI * 2);
-      ctx.fill();
+  function drawEntity(e) {
+    const sc = scaleAt(e.z);
+    const x = xAt(e.x, e.z);
+    const y = yAt(e.z);
+    const pop = e.hitT > 0 ? 1.07 : 1;
+    if (e.cat === 'gates') {
+      e.sprites.forEach((sp, side) => sprite(sp, xAt(side ? 0.75 : -0.75, e.z), y, sc));
+    } else if (e.cat === 'board') {
+      sprite(e.sprite, x, y, sc);
+    } else if (e.cat === 'block') {
+      shadow(x, y, laneW * sc * 0.6, sc);
+      const h = sprite(art.places[e.place], x, y, sc, pop);
+      hpLabel(Math.ceil(e.hp), x, y - h * 0.42, 30 * sc + 8, '#ffffff');
+    } else if (e.cat === 'boss') {
+      shadow(x, y, laneW * sc * 0.8, sc);
+      const h = sprite(art.boss, x, y - Math.abs(Math.sin(s.runPhase * 0.4)) * 6 * sc, sc, pop);
+      hpBar(e, x, y - h - 10 * sc, laneW * 1.6 * sc);
+    } else {
+      const img = e.cat === 'big' ? art.big : art.eaters[e.look];
+      const hop = Math.abs(Math.sin(s.runPhase * 0.8 + e.bob)) * 5 * sc;
+      shadow(x, y, laneW * sc * (e.cat === 'big' ? 0.3 : 0.17), sc);
+      const h = sprite(img, x, y - hop, sc, pop);
+      if (e.maxHp > 1) hpLabel(Math.ceil(e.hp), x, y - h - hop - 4, 13 * sc + 7, COLORS.gold);
     }
-    if (s.invulnT > 0 && Math.floor(s.invulnT * 12) % 2) return;
-    ctx.save();
-    ctx.translate(x, playerY() - bob);
-    ctx.rotate(tilt);
-    ctx.scale(slide ? 1.15 : 1, slide ? 0.55 : 1);
-    if (img && img.complete) ctx.drawImage(img, -chefW * BODY_CX, -chefH, chefW, chefH);
-    ctx.restore();
   }
 
-  function drawParticles() {
-    particles.forEach((p) => {
-      if (!p.active) return;
-      ctx.globalAlpha = p.life / p.max;
-      ctx.fillStyle = p.color;
-      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
-    });
-    ctx.globalAlpha = 1;
-  }
-
-  function drawPopups() {
+  function hpLabel(value, x, y, size, color) {
+    ctx.font = `900 ${Math.round(size)}px ${FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.lineJoin = 'round';
-    popups.forEach((p) => {
-      if (!p.active) return;
-      const k = p.life / p.max;
-      const pop = p.big ? 1 + Math.max(0, k - 0.8) * 2 : 1;
-      ctx.globalAlpha = Math.min(1, k * 2.5);
-      ctx.font = `900 ${Math.round((p.big ? 28 : 22) * pop)}px ${FONT}`;
-      ctx.lineWidth = 6;
-      ctx.strokeStyle = COLORS.ink;
-      ctx.strokeText(p.text, p.x, p.y);
-      ctx.fillStyle = p.color;
-      ctx.fillText(p.text, p.x, p.y);
-    });
-    ctx.globalAlpha = 1;
+    ctx.lineWidth = Math.max(3, size * 0.22);
+    ctx.strokeStyle = COLORS.ink;
+    ctx.strokeText(String(value), x, y);
+    ctx.fillStyle = color;
+    ctx.fillText(String(value), x, y);
+  }
+
+  function hpBar(e, x, y, w) {
+    const h = Math.max(6, w * 0.07);
+    ctx.fillStyle = COLORS.ink;
+    ctx.fillRect(x - w / 2 - 2, y - h / 2 - 2, w + 4, h + 4);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x - w / 2, y - h / 2, w, h);
+    ctx.fillStyle = COLORS.red;
+    ctx.fillRect(x - w / 2, y - h / 2, w * Math.max(0, e.hp / e.maxHp), h);
+    hpLabel(Math.ceil(e.hp), x, y - h * 1.6, h * 2.2, '#ffffff');
+  }
+
+  function drawBullets() {
+    const size = laneW * 0.26;
+    for (let i = 0; i < bullets.length; i++) {
+      const b = bullets[i];
+      if (!b.active) continue;
+      const sc = scaleAt(b.z);
+      const d = size * sc;
+      ctx.save();
+      ctx.translate(xAt(b.x, b.z), yAt(b.z) - laneW * 0.45 * sc);
+      ctx.rotate(b.spin);
+      ctx.drawImage(foodSprites[b.kind], -d / 2, -d / 2, d, d);
+      ctx.restore();
+    }
+  }
+
+  function refreshSlots() {
+    const visible = Math.min(s.count, SQUAD.maxVisible);
+    if (visible === slotsFor) return;
+    slotsFor = visible;
+    slots = formation(visible);
+    slotOrder = slots.map((_, i) => i).sort((a, b) => slots[b].dz - slots[a].dz);
+  }
+
+  function drawSquad() {
+    refreshSlots();
+    if (!slots.length) return;
+    const running = s.running && s.countdown <= 0;
+    for (let k = 0; k < slotOrder.length; k++) {
+      const i = slotOrder[k];
+      const slot = slots[i];
+      const z = SQUAD_Z + slot.dz;
+      const sc = scaleAt(z);
+      const x = xAt(s.sx + slot.dx, z);
+      const bob = running ? Math.abs(Math.sin(s.runPhase + i * 1.7)) * 4 * sc : 0;
+      shadow(x, yAt(z), laneW * sc * 0.14, sc);
+      sprite(i === 0 ? art.leader : art.chef, x, yAt(z) - bob, sc);
+    }
+    drawCountBanner();
+  }
+
+  function drawCountBanner() {
+    const x = xAt(s.sx, SQUAD_Z);
+    const y = squadTopY() - squadRadius(s.count) * laneW * 0.35;
+    const pop = 1 + s.bumpT * 0.8;
+    const text = `👨‍🍳 ${s.count}`;
+    ctx.font = `900 ${Math.round(20 * pop)}px ${FONT}`;
+    const w = ctx.measureText(text).width + 22;
+    const h = 30 * pop;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x - w / 2, y - h / 2, w, h, h / 2);
+    else ctx.rect(x - w / 2, y - h / 2, w, h);
+    ctx.fillStyle = COLORS.red;
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#ffffff';
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y + 1);
   }
 
   function drawBubble() {
@@ -573,10 +596,10 @@ export function createGame({ canvas, chefImages, billboards, sfx, t, chatter, on
     const textW = Math.max(...b.lines.map((l) => ctx.measureText(l).width));
     const bw = textW + 28;
     const bh = b.lines.length * lineH + 18;
-    const headX = xAt(s.x, 0);
-    const tipY = playerY() - chefH * (sliding() ? 0.6 : 1.02);
+    const headX = xAt(s.sx, SQUAD_Z);
+    const tipY = squadTopY() - squadRadius(s.count) * laneW * 0.35 - 20;
     const bx = Math.max(10, Math.min(W - bw - 10, headX - bw / 2));
-    const by = tipY - bh - 14;
+    const by = tipY - bh - 12;
     ctx.save();
     ctx.globalAlpha = Math.min(1, b.life / 0.3);
     ctx.translate(headX, tipY);
@@ -618,10 +641,9 @@ export function createGame({ canvas, chefImages, billboards, sfx, t, chatter, on
     ctx.fillStyle = COLORS.red;
     ctx.fillText(String(n), 0, 0);
     ctx.restore();
-    // control tutorial while counting down
     ctx.font = `900 17px ${FONT}`;
     ctx.lineWidth = 5;
-    [t('tutLanes'), t('tutJump'), t('tutSlide')].forEach((line, i) => {
+    [t('tutDrag'), t('tutGates'), t('tutFeed')].forEach((line, i) => {
       ctx.strokeStyle = '#ffffff';
       ctx.strokeText(line, 0, 90 + i * 28);
       ctx.fillStyle = COLORS.ink;
@@ -632,14 +654,7 @@ export function createGame({ canvas, chefImages, billboards, sfx, t, chatter, on
 
   // ---------- HUD / loop ----------
   function emitHud() {
-    onHud({
-      score: s.score,
-      lives: s.lives,
-      meters: Math.floor(s.dist),
-      pins: s.discovered,
-      multiplier: multiplierFor(s.combo),
-      magnet: s.magnetT > 0,
-    });
+    onHud({ score: s.score, count: s.count, meters: Math.floor(s.dist), pins: s.discovered });
   }
 
   function loop() {
@@ -650,22 +665,19 @@ export function createGame({ canvas, chefImages, billboards, sfx, t, chatter, on
       update(dt);
       draw();
       if (s.running) emitHud();
-      const idle = !s.running && !particles.some((p) => p.active) && !popups.some((p) => p.active);
-      rafId = idle ? 0 : requestAnimationFrame(frame);
+      rafId = !s.running && !fx.busy() ? 0 : requestAnimationFrame(frame);
     };
     cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(frame);
   }
 
   function start() {
-    [objects, particles, popups].forEach((arr) => arr.forEach((o) => { o.active = false; }));
+    [entities, bullets].forEach((arr) => arr.forEach((o) => { o.active = false; }));
+    fx.clear();
     s = freshState();
     s.running = true;
     s.countdown = 3;
-    // A few pickups right away so the first seconds feel rewarding.
-    for (let i = 0; i < 5; i++) {
-      spawn({ kind: COIN_KINDS[i % COIN_KINDS.length], cat: 'coin', lane: 0, z: 8 + i * RUN.coinSpacing });
-    }
+    slotsFor = -1;
     sfx.tick();
     emitHud();
     loop();
@@ -674,10 +686,11 @@ export function createGame({ canvas, chefImages, billboards, sfx, t, chatter, on
   function destroy() {
     cancelAnimationFrame(rafId);
     canvas.removeEventListener('pointerdown', onDown);
-    canvas.removeEventListener('pointermove', onMove);
-    canvas.removeEventListener('pointerup', onUp);
-    canvas.removeEventListener('pointercancel', onUp);
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
     window.removeEventListener('keydown', onKey);
+    window.removeEventListener('keyup', onKey);
     document.removeEventListener('visibilitychange', onVisibility);
   }
 
