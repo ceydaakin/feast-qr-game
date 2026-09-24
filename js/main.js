@@ -175,7 +175,8 @@ function showScreen(id) {
 // Only touch the DOM when a value actually changed (HUD is fed every frame).
 function makeHud() {
   const els = {
-    score: $('#hud-score'), count: $('#hud-count'), meters: $('#hud-meters'), pins: $('#hud-pins'),
+    hud: $('#hud'), score: $('#hud-score'), count: $('#hud-count'), meters: $('#hud-meters'), pins: $('#hud-pins'),
+    left: $('#hud-left'), bar: $('#hud-time'),
   };
   let prev = {};
   return (h) => {
@@ -188,6 +189,9 @@ function makeHud() {
     if (h.count !== prev.count) els.count.textContent = h.count;
     if (h.meters !== prev.meters) els.meters.textContent = h.meters;
     if (h.pins !== prev.pins) els.pins.textContent = h.pins;
+    if (h.timeLeft !== prev.timeLeft) els.left.textContent = h.timeLeft;
+    if (h.timeFrac !== prev.timeFrac) els.bar.style.transform = `scaleX(${1 - h.timeFrac})`;
+    if (h.rush !== prev.rush) els.hud.classList.toggle('rush', h.rush);
     prev = { ...h };
   };
 }

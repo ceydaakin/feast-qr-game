@@ -7,9 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="format-detection" content="telephone=no">
   <title>Şef Ordusu! · feast.</title>
-  <meta name="description" content="Bıyıklı Şef'in ekibini büyüt, aç kalabalığı doyur — sonra gerçek lezzetleri feast'te keşfet.">
+  <meta name="description" content="45 saniye oynayın, feast dünyasına adım atın! Bıyıklı Şef'in ekibini büyüt, aç kalabalığı doyur — sonra gerçek lezzetleri feast'te keşfet.">
   <meta property="og:title" content="Şef Ordusu! · feast.">
-  <meta property="og:description" content="Kapılardan geç, şef ordunu büyüt, İstanbul'un aç kalabalığını doyur. Sen kaç kişiyi doyurursun?">
+  <meta property="og:description" content="45 saniye oynayın, feast dünyasına adım atın! Sen 45 saniyede kaç kişiyi doyurursun?">
   <meta property="og:image" content="assets/toss.webp">
   <meta name="apple-itunes-app" content="app-id=6762010641">
   <link rel="icon" href="assets/chef-head.webp" type="image/webp">
@@ -28,6 +28,10 @@
   <canvas id="stage" aria-label="Oyun alanı" data-i18n-aria="ariaGame"></canvas>
 
   <div id="hud" hidden>
+    <div class="hud-timer">
+      <span class="hud-clock" aria-live="off">⏱ <span id="hud-left">45</span></span>
+      <div class="hud-bar"><div id="hud-time"></div></div>
+    </div>
     <div class="hud-row">
       <div class="hud-score"><span id="hud-score">0</span></div>
       <div class="hud-squad" aria-live="polite">👨‍🍳 <span id="hud-count">0</span></div>
@@ -45,7 +49,8 @@
     <div class="card start-card">
       <img class="logo" src="assets/logo.webp" alt="feast." width="120" height="33">
       <img class="hero-chef" src="assets/toss.webp" alt="" width="317" height="480" fetchpriority="high">
-      <h1 data-i18n="title">Şef Ordusu!</h1>
+      <p class="round-badge"><span aria-hidden="true">⏱</span> <span data-i18n="roundBadge"></span></p>
+      <h1 data-i18n="headline">45 saniye oynayın, feast dünyasına adım atın!</h1>
       <p class="sub" data-i18n="subtitle"></p>
       <div class="legend">
         <div class="legend-group good"><span data-i18n="howGates"></span><div data-legend="gates"></div></div>
@@ -55,11 +60,11 @@
         <div class="legend-bonus legend-discover"><span aria-hidden="true">🔒</span><span data-i18n="howDiscover"></span></div>
         <div class="legend-bonus"><span aria-hidden="true">👑</span><span data-i18n="howBoss"></span></div>
       </div>
-      <button id="btn-play" class="btn btn-primary btn-pulse" type="button" data-i18n="play">Oyna</button>
+      <button id="btn-play" class="btn btn-primary btn-pulse" type="button" data-i18n="play">45 saniye oyna</button>
       <p class="hint">👆 <span data-i18n="howDrag"></span></p>
       <p id="start-best" class="best"></p>
       <div class="ticker" aria-live="polite"><span id="ticker-text"></span></div>
-      <a class="link-app" data-store="start" href="#" target="_top" rel="noopener" data-i18n="getApp"></a>
+      <a class="link-app" data-store="start" href="#" target="_top" rel="noopener" data-i18n="skipToApp"></a>
     </div>
   </section>
 

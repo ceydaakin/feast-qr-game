@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  SQUAD, applyGate, gateLabel, isGoodGate, gateSide, formation, volleyDamage,
+  SQUAD, applyGate, gateLabel, isGoodGate, gateSide, formation, squadRadius, volleyDamage,
   contactLoss, speedAt, hordeHp, blockHp, pickSegment, crowdScore, dragToX,
 } from '../js/squad-logic.js';
 
@@ -106,4 +106,26 @@ test('dragToX converts screen drag to a clamped squad position', () => {
   assert.equal(dragToX(0, 100, 200), 0.5 * SQUAD.dragGain);
   assert.equal(dragToX(1.4, 1000, 200), SQUAD.roadHalf - SQUAD.edgePad);
   assert.equal(dragToX(-1.4, -1000, 200), -(SQUAD.roadHalf - SQUAD.edgePad));
+});
+
+test('roundLeft counts the 45 second round down and never goes negative', async () => {
+  const { ROUND, roundLeft, isFinalStretch } = await import('../js/squad-logic.js');
+  assert.equal(ROUND.seconds, 45);
+  assert.equal(roundLeft(0), 45);
+  assert.equal(roundLeft(44.2), 1);
+  assert.equal(roundLeft(45), 0);
+  assert.equal(roundLeft(99), 0);
+  assert.ok(!isFinalStretch(30));
+  assert.ok(isFinalStretch(ROUND.seconds - ROUND.finalStretch + 0.1));
+  assert.ok(!isFinalStretch(45));
+});
+
+test('a maxed-out squad steered to one side fits inside a single gate panel', async () => {
+  const { squadReach } = await import('../js/squad-logic.js');
+  for (const count of [SQUAD.startCount, 20, SQUAD.maxVisible, SQUAD.maxCount]) {
+    const reach = squadReach(count);
+    const r = squadRadius(count);
+    assert.ok(reach - r > 0, `count ${count}: blob crosses the gate divider`);
+    assert.ok(reach + r <= SQUAD.roadHalf + 0.05, `count ${count}: blob leaves the road`);
+  }
 });

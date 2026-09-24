@@ -6,7 +6,7 @@ export const SQUAD = Object.freeze({
   startCount: 3,
   maxCount: 999,
   maxVisible: 42, // drawn members; the rest only exist as the number on the banner
-  maxRadius: 0.95, // formation radius in road units
+  maxRadius: 0.5, // formation radius in road units — small enough that a full squad fits one gate panel
   roadHalf: 1.5,
   edgePad: 0.3,
   dragGain: 1.6, // full-road swipe moves the squad 1.6 road widths (feels snappy)
@@ -61,6 +61,10 @@ export function formation(count) {
 }
 
 export const squadRadius = (count) => SLOT_SPACING * Math.sqrt(Math.max(0, Math.min(count, SQUAD.maxVisible) - 1)) + 0.22;
+
+// How far the squad centre may steer: the blob stays on the road, and a full
+// squad pushed to one side still fits inside a single gate panel.
+export const squadReach = (count) => Math.max(0.2, SQUAD.roadHalf - squadRadius(count) * 0.95);
 
 export function volleyDamage(count, projectiles) {
   if (projectiles <= 0 || count <= 0) return 0;
@@ -162,3 +166,13 @@ export function dragToX(startX, dxPx, roadPx) {
   const limit = SQUAD.roadHalf - SQUAD.edgePad;
   return clamp(startX + (dxPx / Math.max(1, roadPx)) * SQUAD.dragGain, -limit, limit);
 }
+
+// A run is a short, fixed-length taste of feast: 45 s, then the store pitch.
+export const ROUND = Object.freeze({
+  seconds: 45,
+  finalStretch: 10, // last N seconds: HUD shakes, clock ticks, chef hypes the app
+});
+
+export const roundLeft = (elapsedSec) => Math.max(0, Math.ceil(ROUND.seconds - Math.max(0, elapsedSec)));
+
+export const isFinalStretch = (elapsedSec) => elapsedSec > ROUND.seconds - ROUND.finalStretch && elapsedSec < ROUND.seconds;

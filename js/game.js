@@ -4,8 +4,8 @@
 // purpose — allocating per frame would cause GC hitches on low-end phones.
 
 import {
-  SQUAD, applyGate, gateLabel, isGoodGate, gateSide, formation, squadRadius, volleyDamage,
-  contactLoss, speedAt, pickSegment, blockReward, crowdScore, dragToX,
+  SQUAD, applyGate, gateLabel, isGoodGate, gateSide, formation, squadRadius, squadReach, volleyDamage,
+  contactLoss, speedAt, pickSegment, blockReward, crowdScore, dragToX, ROUND, roundLeft, isFinalStretch,
 } from './squad-logic.js';
 import { buildSpriteCache } from './art.js';
 import { buildBillboard, renderSky } from './scenery.js';
@@ -131,7 +131,7 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
     s.segIdx += 1;
     const boss = idx >= SQUAD.firstBoss && (idx + 1) % SQUAD.bossEvery === 0;
     const type = OPENING[idx] || (boss ? 'boss' : null);
-    const seg = pickSegment(Math.random, Math.min(1, s.elapsed / 100), s.count, type);
+    const seg = pickSegment(Math.random, Math.min(1, s.elapsed / (ROUND.seconds * 1.25)), s.count, type);
     const z = SQUAD.spawnZ;
     if (seg.type === 'gates') {
       spawn({ cat: 'gates', x: 0, z, gates: seg.gates, sprites: buildGateSprites(seg.gates, laneW, dpr) });
@@ -277,7 +277,12 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
     s.running = false;
     s.over = true;
     s.score = crowdScore(s);
-    sfx.gameOver();
+    if (reason === 'time') {
+      sfx.bonus();
+      fx.popup(W / 2, H * 0.35, t('timeUp'), COLORS.gold, true);
+    } else {
+      sfx.gameOver();
+    }
     emitHud();
     onEnd({
       score: s.score, fed: s.fed, peak: s.peak, discovered: s.discovered,
@@ -293,8 +298,7 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
     fx.update(dt);
     updateBubble(dt);
     if (keys.left !== keys.right) s.x = dragToX(s.x, (keys.left ? -1 : 1) * KEY_SPEED * dt * roadPx() / SQUAD.dragGain, roadPx());
-    // Keep the whole blob on the road: a big squad can't hug the curb.
-    const reach = Math.max(0.2, SQUAD.roadHalf - squadRadius(s.count) * 0.85);
+    const reach = squadReach(s.count);
     s.x = Math.max(-reach, Math.min(reach, s.x));
     s.sx += (s.x - s.sx) * (1 - Math.exp(-dt * 14));
 
@@ -308,7 +312,9 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
     if (!s.running) return;
 
     const speed = speedAt(s.elapsed);
+    const leftBefore = roundLeft(s.elapsed);
     s.elapsed += dt;
+    if (updateClock(leftBefore)) return;
     s.dist += speed * dt;
     s.runPhase += dt * 11;
     s.idleT -= dt;
@@ -324,6 +330,20 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
     updateBullets(dt);
     updateEntities(dt, speed);
     if (s.running) s.score = crowdScore(s);
+  }
+
+  // Returns true once the round is over so the frame stops simulating.
+  function updateClock(leftBefore) {
+    const left = roundLeft(s.elapsed);
+    if (left <= 0) {
+      finish('time');
+      return true;
+    }
+    if (left !== leftBefore && isFinalStretch(s.elapsed)) {
+      sfx.tick();
+      if (left === ROUND.finalStretch) say('final', true);
+    }
+    return false;
   }
 
   function hitTarget(b, prevZ) {
@@ -643,7 +663,7 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
     ctx.restore();
     ctx.font = `900 17px ${FONT}`;
     ctx.lineWidth = 5;
-    [t('tutDrag'), t('tutGates'), t('tutFeed')].forEach((line, i) => {
+    [t('tutTime'), t('tutDrag'), t('tutGates'), t('tutFeed')].forEach((line, i) => {
       ctx.strokeStyle = '#ffffff';
       ctx.strokeText(line, 0, 90 + i * 28);
       ctx.fillStyle = COLORS.ink;
@@ -654,7 +674,10 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
 
   // ---------- HUD / loop ----------
   function emitHud() {
-    onHud({ score: s.score, count: s.count, meters: Math.floor(s.dist), pins: s.discovered });
+    onHud({
+      score: s.score, count: s.count, meters: Math.floor(s.dist), pins: s.discovered,
+      timeLeft: roundLeft(s.elapsed), timeFrac: Math.min(1, s.elapsed / ROUND.seconds), rush: isFinalStretch(s.elapsed),
+    });
   }
 
   function loop() {
