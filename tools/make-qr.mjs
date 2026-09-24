@@ -95,8 +95,9 @@ function posterSvg(gameUrl) {
   <rect width="${W}" height="${H}" fill="url(#bg)"/>
   ${Array.from({ length: 10 }, (_, i) => `<rect x="${i * 124}" y="0" width="124" height="70" fill="${i % 2 ? '#fff' : RED}"/><circle cx="${i * 124 + 62}" cy="70" r="62" fill="${i % 2 ? '#fff' : RED}"/>`).join('')}
   <image x="${(W - 300) / 2}" y="170" width="300" height="82" href="data:image/webp;base64,${logo}"/>
-  <text x="${W / 2}" y="340" text-anchor="middle" font-family="Arial Rounded MT Bold, Arial Black, Helvetica, sans-serif" font-weight="900" font-size="84" fill="${RED}" stroke="${INK}" stroke-width="4" paint-order="stroke">Bıyıklı Şef'le oyna!</text>
-  <text x="${W / 2}" y="410" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="40" fill="${INK}">Okut · Şefle koş · yeni mekânları keşfet</text>
+  <text x="${W / 2}" y="345" text-anchor="middle" font-family="Arial Rounded MT Bold, Arial Black, Helvetica, sans-serif" font-weight="900" font-size="88" fill="${RED}" stroke="${INK}" stroke-width="4" paint-order="stroke">⏱ 45 saniye oynayın,</text>
+  <text x="${W / 2}" y="425" text-anchor="middle" font-family="Arial Rounded MT Bold, Arial Black, Helvetica, sans-serif" font-weight="900" font-size="62" fill="${INK}">feast dünyasına adım atın!</text>
+  <text x="${W / 2}" y="478" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="34" fill="${INK}" opacity="0.75">Okut · şef ordunu büyüt · lezzeti keşfet</text>
   <image x="30" y="${H - 690}" width="400" height="606" href="data:image/webp;base64,${toss}"/>
   <g transform="translate(${W - qs - 90}, 520)">
     <rect x="-24" y="-24" width="${qs + 48}" height="${qs + 48}" rx="56" fill="#fff" stroke="${INK}" stroke-width="10"/>
@@ -104,7 +105,7 @@ function posterSvg(gameUrl) {
   </g>
   <g transform="translate(${W - qs / 2 - 90}, ${520 + qs + 110})">
     <rect x="-250" y="-54" width="500" height="92" rx="46" fill="${RED}" stroke="${INK}" stroke-width="6"/>
-    <text y="10" text-anchor="middle" font-family="Arial Rounded MT Bold, Arial Black, Helvetica, sans-serif" font-weight="900" font-size="46" fill="#fff">Kamerayla okut</text>
+    <text y="10" text-anchor="middle" font-family="Arial Rounded MT Bold, Arial Black, Helvetica, sans-serif" font-weight="900" font-size="46" fill="#fff">Okut &amp; oyna ▶</text>
   </g>
   <text x="${W - qs / 2 - 90}" y="${H - 90}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="30" fill="${INK}" opacity="0.6">${host}</text>
 </svg>`;
