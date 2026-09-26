@@ -10,17 +10,17 @@ export const SQUAD = Object.freeze({
   roadHalf: 1.5,
   edgePad: 0.3,
   dragGain: 1.6, // full-road swipe moves the squad 1.6 road widths (feels snappy)
-  chefDps: 4,
+  chefDps: 5,
   fireEvery: 0.09,
   bulletSpeed: 52,
   bulletRange: 42,
-  baseSpeed: 7,
-  maxSpeed: 12.5,
-  speedRampSec: 70,
+  baseSpeed: 9,
+  maxSpeed: 15,
+  speedRampSec: 32, // mostly ramped inside the 45 s round
   eaterWalk: 2.4,
   camDist: 20,
   spawnZ: 56,
-  segmentGap: 17,
+  segmentGap: 15,
   bossEvery: 7, // every Nth segment is a boss…
   firstBoss: 13, // …but never before the squad had time to grow
   eaterPerChef: 4, // an eater with hp h grabs ceil(h / 4) chefs on contact

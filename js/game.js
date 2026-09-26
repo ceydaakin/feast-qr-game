@@ -13,6 +13,9 @@ import { buildCrowdSprites, buildGateSprites } from './crowd-art.js';
 import { createFx } from './fx.js';
 
 const MAX_DPR = 2;
+const MIN_DPR = 1;
+const SLOW_FRAME = 1 / 45; // average frame time above this drops render resolution
+const STEER_RATE = 18;
 const MAX_DT = 1 / 30;
 const COLORS = { gold: '#ffd23f', red: '#ff3131', ink: '#3a1d10', green: '#2bb673', food: '#ffb100' };
 const BUBBLE = { life: 2.6, gap: 1.2, idleEvery: 8.5 };
@@ -36,7 +39,7 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
   const entities = pool(110);
   const bullets = pool(150);
   const drawList = [];
-  const drag = { active: false, px: 0, startX: 0 };
+  const drag = { active: false, px: 0 };
   const keys = { left: false, right: false };
 
   let W = 0; let H = 0; let dpr = 1;
@@ -44,6 +47,9 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
   let sky = null; let foodSprites = null; let art = null; let boardSprites = [];
   let slots = []; let slotOrder = []; let slotsFor = -1;
   let rafId = 0; let lastTs = 0;
+  let dprCap = MAX_DPR; let haze = null;
+  let ox = 0; let oy = 0; // screen-shake offset of the current frame
+  const perf = { avg: 1 / 60, t: 0 };
   let s = freshState();
 
   function freshState() {
@@ -66,13 +72,14 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
     const rect = canvas.getBoundingClientRect();
     W = Math.max(1, rect.width);
     H = Math.max(1, rect.height);
-    dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+    dpr = Math.min(window.devicePixelRatio || 1, dprCap);
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
     horizonY = H * 0.24;
     groundY = H * 0.93;
     laneW = Math.min(W * 0.31, 180);
     sky = renderSky(W, horizonY, dpr);
+    haze = makeHaze();
     foodSprites = buildSpriteCache(FOOD, Math.round(laneW * 0.26 * dpr), () => false);
     art = buildCrowdSprites(laneW, dpr, places);
     boardSprites = places.map((p) => buildBillboard(p.img, p.label, t('boardCta'), laneW, dpr));
@@ -84,11 +91,16 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
 
   // ---------- input ----------
   function onDown(e) {
-    Object.assign(drag, { active: true, px: e.clientX, startX: s.x });
+    drag.active = true;
+    drag.px = e.clientX;
   }
+  // Incremental steering: reversing a swipe responds instantly even after the
+  // squad hit the road edge (no dead zone to swipe back through).
   function onMove(e) {
     if (!drag.active || !s.running) return;
-    s.x = dragToX(drag.startX, e.clientX - drag.px, roadPx());
+    const reach = squadReach(s.count);
+    s.x = Math.max(-reach, Math.min(reach, dragToX(s.x, e.clientX - drag.px, roadPx())));
+    drag.px = e.clientX;
   }
   function onUp() {
     drag.active = false;
@@ -300,7 +312,7 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
     if (keys.left !== keys.right) s.x = dragToX(s.x, (keys.left ? -1 : 1) * KEY_SPEED * dt * roadPx() / SQUAD.dragGain, roadPx());
     const reach = squadReach(s.count);
     s.x = Math.max(-reach, Math.min(reach, s.x));
-    s.sx += (s.x - s.sx) * (1 - Math.exp(-dt * 14));
+    s.sx += (s.x - s.sx) * (1 - Math.exp(-dt * STEER_RATE));
 
     if (s.countdown > 0) {
       const before = Math.ceil(s.countdown);
@@ -407,9 +419,9 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
   // ---------- render ----------
   function draw() {
     if (!sky) return;
-    const sx = s.shake > 0 ? (Math.random() - 0.5) * 16 * s.shake : 0;
-    const sy = s.shake > 0 ? (Math.random() - 0.5) * 16 * s.shake : 0;
-    ctx.setTransform(dpr, 0, 0, dpr, sx * dpr, sy * dpr);
+    ox = s.shake > 0 ? (Math.random() - 0.5) * 16 * s.shake : 0;
+    oy = s.shake > 0 ? (Math.random() - 0.5) * 16 * s.shake : 0;
+    ctx.setTransform(dpr, 0, 0, dpr, ox * dpr, oy * dpr);
     ctx.drawImage(sky, 0, 0, W, horizonY + 2);
     drawGround();
     drawWorld();
@@ -455,12 +467,15 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
       band(-edge - 0.12, -edge, z0 + TILE / 2, z0 + TILE);
       band(edge, edge + 0.12, z0 + TILE / 2, z0 + TILE);
     }
-    const hazeH = (groundY - horizonY) * 0.16;
-    const haze = ctx.createLinearGradient(0, horizonY, 0, horizonY + hazeH);
-    haze.addColorStop(0, 'rgba(255,243,227,1)');
-    haze.addColorStop(1, 'rgba(255,243,227,0)');
     ctx.fillStyle = haze;
-    ctx.fillRect(0, horizonY, W, hazeH);
+    ctx.fillRect(0, horizonY, W, (groundY - horizonY) * 0.16);
+  }
+
+  function makeHaze() {
+    const g = ctx.createLinearGradient(0, horizonY, 0, horizonY + (groundY - horizonY) * 0.16);
+    g.addColorStop(0, 'rgba(255,243,227,1)');
+    g.addColorStop(1, 'rgba(255,243,227,0)');
+    return g;
   }
 
   function drawWorld() {
@@ -553,12 +568,12 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
       if (!b.active) continue;
       const sc = scaleAt(b.z);
       const d = size * sc;
-      ctx.save();
-      ctx.translate(xAt(b.x, b.z), yAt(b.z) - laneW * 0.45 * sc);
-      ctx.rotate(b.spin);
+      const cos = Math.cos(b.spin) * dpr;
+      const sin = Math.sin(b.spin) * dpr;
+      ctx.setTransform(cos, sin, -sin, cos, (xAt(b.x, b.z) + ox) * dpr, (yAt(b.z) - laneW * 0.45 * sc + oy) * dpr);
       ctx.drawImage(foodSprites[b.kind], -d / 2, -d / 2, d, d);
-      ctx.restore();
     }
+    ctx.setTransform(dpr, 0, 0, dpr, ox * dpr, oy * dpr);
   }
 
   function refreshSlots() {
@@ -687,11 +702,23 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
       lastTs = ts;
       update(dt);
       draw();
+      if (dt && s.running && s.countdown <= 0) watchPerf(dt);
       if (s.running) emitHud();
       rafId = !s.running && !fx.busy() ? 0 : requestAnimationFrame(frame);
     };
     cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(frame);
+  }
+
+  // Low-end phones: if frames stay slow, render at a lower resolution once.
+  function watchPerf(dt) {
+    perf.avg += (dt - perf.avg) * 0.05;
+    perf.t += dt;
+    if (perf.t < 2 || perf.avg < SLOW_FRAME || dpr <= MIN_DPR) return;
+    dprCap = Math.max(MIN_DPR, dpr - 0.5);
+    perf.t = 0;
+    perf.avg = 1 / 60;
+    resize();
   }
 
   function start() {

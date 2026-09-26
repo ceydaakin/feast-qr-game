@@ -222,8 +222,6 @@ h2 { font-size: 30px; color: var(--red); }
   text-shadow: 0 3px 0 var(--ink);
 }
 #hud-score { display: inline-block; font-variant-numeric: tabular-nums; }
-#hud-score.bump { animation: bump .18s ease-out; }
-@keyframes bump { 50% { transform: scale(1.18); } }
 .hud-squad {
   font-size: 20px;
   font-weight: 900;

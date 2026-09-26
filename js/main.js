@@ -10,6 +10,8 @@ import { buildLegendIcons } from './crowd-art.js';
 
 const BEST_KEY = 'feast-game.best.v1';
 const MUTE_KEY = 'feast-game.muted.v1';
+const BUMP_MIN = 5;
+const BUMP_FRAMES = [{ transform: 'scale(1)' }, { transform: 'scale(1.18)' }, { transform: 'scale(1)' }];
 const $ = (sel) => document.querySelector(sel);
 
 const params = new URLSearchParams(location.search);
@@ -182,9 +184,11 @@ function makeHud() {
   return (h) => {
     if (h.score !== prev.score) {
       els.score.textContent = h.score;
-      els.score.classList.remove('bump');
-      void els.score.offsetWidth;
-      els.score.classList.add('bump');
+      // Distance ticks the score every frame; only pop on real rewards, and via
+      // WAAPI so it never forces a layout mid-frame.
+      if (h.score - (prev.score || 0) >= BUMP_MIN && els.score.animate) {
+        els.score.animate(BUMP_FRAMES, { duration: 180, easing: 'ease-out' });
+      }
     }
     if (h.count !== prev.count) els.count.textContent = h.count;
     if (h.meters !== prev.meters) els.meters.textContent = h.meters;
