@@ -51,6 +51,11 @@ html, body {
   backdrop-filter: blur(6px);
 }
 .screen.is-active { opacity: 1; visibility: visible; transition-delay: 0s; }
+/* Perf: a full-screen backdrop blur over the live canvas is re-blurred every
+   frame; only the visible screen keeps it, and hidden screens stop ticking
+   their infinite animations. */
+.screen:not(.is-active) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+.screen:not(.is-active) :is(.btn-pulse, .hero-chef, .chef-sticker, .btn-store, .best.is-new) { animation-play-state: paused; }
 #play { display: none; }
 .scrollable { overflow-y: auto; -webkit-overflow-scrolling: touch; align-items: safe center; }
 
@@ -167,7 +172,13 @@ h2 { font-size: 30px; color: var(--red); }
   inset: 0 0 auto 0;
   padding: calc(30px + var(--safe-top)) 14px 0;
   pointer-events: none;
+  /* Own compositor layer + layout containment: HUD text changes never
+     relayout the page or repaint the canvas layer. No paint containment, so
+     the score's stroke/shadow and bump animation are never clipped. */
+  contain: layout style;
+  will-change: transform;
 }
+.hud-pill, .hud-clock, .hud-squad, .hud-score { contain: layout style; }
 .hud-sub { margin-top: 4px; }
 .hud-pill {
   font-size: 15px;

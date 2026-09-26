@@ -29,9 +29,15 @@ function tone(freq, dur, { type = 'sine', gain = 0.15, slideTo = null, delay = 0
   amp.gain.setValueAtTime(gain, t0);
   amp.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   osc.connect(amp).connect(ac.destination);
+  osc.onended = () => { osc.disconnect(); amp.disconnect(); };
   osc.start(t0);
   osc.stop(t0 + dur + 0.02);
 }
+
+// Kills come in bursts during a horde; overlapping identical blips add nothing
+// but main-thread node churn (and audio underruns on iOS).
+const CATCH_GAP = 0.06;
+let lastCatch = -1;
 
 export const sfx = {
   unlock() {
@@ -39,6 +45,9 @@ export const sfx = {
     if (ac && ac.state === 'suspended') ac.resume().catch(() => {});
   },
   catchGood(multiplier = 1) {
+    const ac = ensure();
+    if (!ac || muted || ac.currentTime - lastCatch < CATCH_GAP) return;
+    lastCatch = ac.currentTime;
     tone(520 + multiplier * 90, 0.09, { type: 'triangle', slideTo: 900 + multiplier * 120 });
   },
   bonus() {

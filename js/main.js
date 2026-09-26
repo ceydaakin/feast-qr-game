@@ -12,6 +12,7 @@ import { buildLegendIcons } from './crowd-art.js';
 const BEST_KEY = 'feast-game.best.v1';
 const MUTE_KEY = 'feast-game.muted.v1';
 const BUMP_MIN = 5;
+const RESIZE_DEBOUNCE_MS = 150;
 const BUMP_FRAMES = [{ transform: 'scale(1)' }, { transform: 'scale(1.18)' }, { transform: 'scale(1)' }];
 const $ = (sel) => document.querySelector(sel);
 
@@ -177,12 +178,14 @@ function showScreen(id) {
 }
 
 // Only touch the DOM when a value actually changed (HUD is fed every frame).
+// The game reuses one HUD object, so `prev` is a field-by-field copy (no
+// per-frame spread allocation).
 function makeHud() {
   const els = {
     hud: $('#hud'), score: $('#hud-score'), count: $('#hud-count'), meters: $('#hud-meters'), pins: $('#hud-pins'),
     left: $('#hud-left'), bar: $('#hud-time'),
   };
-  let prev = {};
+  const prev = {};
   return (h) => {
     if (h.score !== prev.score) {
       els.score.textContent = h.score;
@@ -198,7 +201,8 @@ function makeHud() {
     if (h.timeLeft !== prev.timeLeft) els.left.textContent = h.timeLeft;
     if (h.timeFrac !== prev.timeFrac) els.bar.style.transform = `scaleX(${1 - h.timeFrac})`;
     if (h.rush !== prev.rush) els.hud.classList.toggle('rush', h.rush);
-    prev = { ...h };
+    prev.score = h.score; prev.count = h.count; prev.meters = h.meters; prev.pins = h.pins;
+    prev.timeLeft = h.timeLeft; prev.timeFrac = h.timeFrac; prev.rush = h.rush;
   };
 }
 
@@ -262,10 +266,15 @@ function setupMute() {
 
 function preventPageGestures() {
   // Stop pinch-zoom / rubber-band scroll from hijacking drags on iOS.
-  ['gesturestart', 'gesturechange'].forEach((ev) => document.addEventListener(ev, (e) => e.preventDefault()));
-  document.addEventListener('touchmove', (e) => {
-    if (!e.target.closest('.scrollable')) e.preventDefault();
-  }, { passive: false });
+  ['gesturestart', 'gesturechange'].forEach((ev) => document.addEventListener(ev, (e) => e.preventDefault(), { passive: false }));
+  // Non-passive listeners make the browser wait on the main thread before every
+  // touch move, so keep them off the canvas (it has CSS touch-action: none) —
+  // steering during a busy frame stays responsive.
+  document.querySelectorAll('.screen').forEach((screen) => {
+    screen.addEventListener('touchmove', (e) => {
+      if (!e.target.closest('.scrollable')) e.preventDefault();
+    }, { passive: false });
+  });
   document.addEventListener('contextmenu', (e) => {
     if (e.target.closest('canvas')) e.preventDefault();
   });
@@ -308,14 +317,12 @@ async function boot() {
     },
   });
 
-  let resizeQueued = false;
+  // Debounced: iOS fires a burst of resizes while the URL bar animates; one
+  // rebuild after it settles instead of one per frame (resize() also skips no-ops).
+  let resizeTimer = 0;
   window.addEventListener('resize', () => {
-    if (resizeQueued) return;
-    resizeQueued = true;
-    requestAnimationFrame(() => {
-      resizeQueued = false;
-      game.resize();
-    });
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => game.resize(), RESIZE_DEBOUNCE_MS);
   });
 
   const play = () => {

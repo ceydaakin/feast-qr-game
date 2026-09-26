@@ -51,11 +51,23 @@ function beeFrame(size, dpr, wingsUp) {
   return c;
 }
 
+// Mirror a frame horizontally once, so drawing a left-facing bee needs no
+// save/scale/restore per bee per frame.
+function flipped(src) {
+  const c = document.createElement('canvas');
+  c.width = src.width;
+  c.height = src.height;
+  const ctx = c.getContext('2d');
+  ctx.setTransform(-1, 0, 0, 1, src.width, 0);
+  ctx.drawImage(src, 0, 0);
+  return c;
+}
+
 export function createBees(count) {
   const bees = Array.from({ length: count }, (_, i) => ({
     phase: i * 2.1, speed: 0.35 + (i % 3) * 0.12, depth: 0.55 + (i % 4) * 0.15, x: 0, y: 0, dir: 1,
   }));
-  let frames = null;
+  let frames = null; // [up-right, up-left, down-right, down-left]
   let box = { w: 1, top: 0, bottom: 1 };
   let time = 0;
   let dpr = 1;
@@ -63,7 +75,9 @@ export function createBees(count) {
   function resize(w, top, bottom, size, pixelRatio) {
     dpr = pixelRatio;
     box = { w, top, bottom };
-    frames = [beeFrame(size, dpr, true), beeFrame(size, dpr, false)];
+    const up = beeFrame(size, dpr, true);
+    const down = beeFrame(size, dpr, false);
+    frames = [up, flipped(up), down, flipped(down)];
   }
 
   // Lazy figure-eight loops across the upper field.
@@ -71,26 +85,25 @@ export function createBees(count) {
     time += dt;
     const midY = (box.top + box.bottom) / 2;
     const ampY = (box.bottom - box.top) / 2;
-    bees.forEach((b) => {
+    for (let i = 0; i < bees.length; i++) {
+      const b = bees[i];
       const t = time * b.speed + b.phase;
       const nx = box.w * (0.5 + 0.44 * Math.sin(t));
       b.dir = nx >= b.x ? 1 : -1;
       b.x = nx;
       b.y = midY + ampY * Math.sin(t * 2 + b.phase) * 0.8 + Math.sin(time * 9 + b.phase) * 2;
-    });
+    }
   }
 
   function draw(ctx) {
     if (!frames) return;
-    const frame = frames[Math.floor(time * FLAP_HZ) % 2];
-    const w = frame.width / dpr; const h = frame.height / dpr;
-    bees.forEach((b) => {
-      ctx.save();
-      ctx.translate(b.x, b.y);
-      ctx.scale(b.dir * b.depth, b.depth);
-      ctx.drawImage(frame, -w / 2, -h / 2, w, h);
-      ctx.restore();
-    });
+    const wing = (Math.floor(time * FLAP_HZ) % 2) * 2;
+    const w = frames[0].width / dpr; const h = frames[0].height / dpr;
+    for (let i = 0; i < bees.length; i++) {
+      const b = bees[i];
+      const dw = w * b.depth; const dh = h * b.depth;
+      ctx.drawImage(frames[wing + (b.dir < 0 ? 1 : 0)], b.x - dw / 2, b.y - dh / 2, dw, dh);
+    }
   }
 
   return { resize, update, draw };

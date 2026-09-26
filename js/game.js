@@ -13,10 +13,22 @@ import { createBees } from './bees.js';
 import { createLabelCache } from './labels.js';
 import { buildCrowdSprites, buildGateSprites } from './crowd-art.js';
 import { createFx } from './fx.js';
+import { createGround } from './ground.js';
+import { createOverlays } from './overlays.js';
+import { createMemo, shadowSprite, spinStrip, SPIN_PAD } from './sprites.js';
 
 const MAX_DPR = 2;
 const MIN_DPR = 1;
+// Backing-store budget in device px: a 390×844 phone renders at ~1.6× instead
+// of 2–3×. The scene is fill-bound, and the flat cartoon art stays crisp.
+const PIXEL_BUDGET = 0.85e6;
+const DPR_STEP = 0.25;
 const SLOW_FRAME = 1 / 50; // average frame time above this drops render resolution
+const PERF_WINDOW = 1; // seconds of slow frames before stepping resolution down
+const SPIN_STEPS = 16; // pre-rotated frames per thrown food
+const HUD_TEXT_EVERY = 0.1; // score/metres DOM text at 10 Hz (count/pins/time stay instant)
+const TIMEBAR_STEPS = 400; // timer bar moves in sub-pixel steps, not every frame
+const GATE_MEMO = 16;
 const COUNTDOWN = 2;
 const SHADOW = 'rgba(40,20,10,0.2)';
 const GATE_PREVIEW_Z = 16; // road units ahead where the chosen gate starts to stand out
@@ -28,37 +40,48 @@ const BUBBLE = { life: 2.6, gap: 1.2, idleEvery: 8.5 };
 const FONT = 'ui-rounded, system-ui, -apple-system, sans-serif';
 const FOOD = ['tomato', 'cheese', 'pepperoni', 'mushroom', 'olive', 'basil'];
 const SQUAD_Z = 2.2;
-const TILE = 2.5; // world units per road tile
 const BILLBOARD_EVERY = 21;
 const MAX_EMITTERS = 5;
 const KEY_SPEED = 3.2; // road units per second with arrow keys
 const HALF_W = { eater: 0.24, big: 0.42, block: 0.72, boss: 0.95 };
 const TARGETS = new Set(['eater', 'big', 'block', 'boss']);
-const LANE_LINES = [-0.75, 0, 0.75];
 const OPENING = ['gates', 'horde', 'gates', 'block', 'horde', 'gates']; // teaches each mechanic once
 
 const pool = (n) => Array.from({ length: n }, () => ({ active: false }));
-const acquire = (arr) => arr.find((o) => !o.active) || null;
+function acquire(arr) {
+  for (let i = 0; i < arr.length; i++) if (!arr[i].active) return arr[i];
+  return null;
+}
+const byDepth = (a, b) => b.z - a.z;
 
 export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t, chatter, onHud, onEnd }) {
   const ctx = canvas.getContext('2d', { alpha: false });
   const fx = createFx(ctx);
   const labels = createLabelCache({ font: FONT, ink: COLORS.ink });
+  const overlays = createOverlays({ font: FONT, colors: COLORS });
+  const gateMemo = createMemo(GATE_MEMO);
   const entities = pool(110);
   const bullets = pool(150);
   const drawList = [];
+  const targets = []; // live shootable entities, rebuilt once per frame
+  const hud = { score: 0, count: 0, meters: 0, pins: 0, timeLeft: 0, timeFrac: 0, rush: false };
+  let hudT = 0;
   const drag = { active: false, px: 0 };
   const keys = { left: false, right: false };
   const scene = theme?.scene || {};
   const ground = GROUNDS[scene.ground] || GROUNDS.street;
   const bees = scene.bees ? createBees(scene.bees) : null;
 
-  let W = 0; let H = 0; let dpr = 1;
+  // dpr = resolution of the main canvas; adpr = resolution the sprites were
+  // rasterised at. Adaptive resolution only changes dpr, so a downgrade never
+  // rebuilds assets mid-run (that rebuild was a 50–150 ms hitch on slow phones).
+  let W = 0; let H = 0; let dpr = 1; let adpr = 1;
   let horizonY = 0; let groundY = 0; let laneW = 0;
-  let sky = null; let foodSprites = null; let art = null; let boardSprites = [];
+  let backdrop = null; let spins = null; let art = null; let boardSprites = [];
+  let shadowImg = null; let tutLines = [];
   let slots = []; let slotOrder = []; let slotsFor = -1;
   let rafId = 0; let lastTs = 0;
-  let dprCap = MAX_DPR; let haze = null;
+  let dprCap = MAX_DPR;
   let ox = 0; let oy = 0; // screen-shake offset of the current frame
   const perf = { avg: 1 / 60, t: 0 };
   let s = freshState();
@@ -78,31 +101,66 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
   const yAt = (z) => horizonY + (groundY - horizonY) * scaleAt(z);
   const xAt = (x, z) => W / 2 + x * laneW * scaleAt(z);
   const roadPx = () => SQUAD.roadHalf * 2 * laneW * scaleAt(SQUAD_Z);
+  const groundLayer = createGround(ground, { xAt, yAt });
+
+  function pickDpr(w, h) {
+    const budget = Math.sqrt(PIXEL_BUDGET / (w * h));
+    return Math.max(MIN_DPR, Math.min(window.devicePixelRatio || 1, dprCap, budget));
+  }
+
+  // Only the backing store: cheap, no sprite work.
+  function setRenderScale(next) {
+    dpr = next;
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+  }
 
   function resize() {
     const rect = canvas.getBoundingClientRect();
-    W = Math.max(1, rect.width);
-    H = Math.max(1, rect.height);
-    dpr = Math.min(window.devicePixelRatio || 1, dprCap);
-    canvas.width = Math.round(W * dpr);
-    canvas.height = Math.round(H * dpr);
+    const w = Math.max(1, rect.width);
+    const h = Math.max(1, rect.height);
+    const next = pickDpr(w, h);
+    const sizeChanged = w !== W || h !== H;
+    // Mobile browsers fire resize for URL-bar/scroll quirks: skip no-op rebuilds.
+    if (!sizeChanged && next === dpr && backdrop) return;
+    W = w;
+    H = h;
+    setRenderScale(next);
+    if (sizeChanged || !backdrop || next > adpr) buildAssets();
+    if (!s.running) draw();
+  }
+
+  function buildAssets() {
+    adpr = dpr;
     horizonY = H * 0.24;
     groundY = H * 0.93;
     laneW = Math.min(W * 0.31, 180);
-    labels.reset(dpr);
-    sky = scene.sky === 'stadium' ? renderStadium(W, horizonY, dpr) : renderSky(W, horizonY, dpr);
-    bees?.resize(W, horizonY * 0.55, H * 0.55, laneW * 0.2, dpr);
-    haze = makeHaze();
-    foodSprites = buildSpriteCache(FOOD, Math.round(laneW * 0.26 * dpr), () => false);
-    art = buildCrowdSprites(laneW, dpr, places, theme?.art);
-    const ads = places.map((p) => buildBillboard(p.img, p.label, t('boardCta'), laneW, dpr));
-    const signs = (theme?.signs?.[locale] || []).map((lines) => buildSign(lines, laneW, dpr));
+    labels.reset(adpr);
+    overlays.reset(adpr);
+    fx.reset(adpr, W);
+    gateMemo.clear();
+    const sky = scene.sky === 'stadium' ? renderStadium(W, horizonY, adpr) : renderSky(W, horizonY, adpr);
+    backdrop = groundLayer.renderBackdrop(sky, W, H, horizonY, groundY, adpr, ctx);
+    bees?.resize(W, horizonY * 0.55, H * 0.55, laneW * 0.2, adpr);
+    const food = buildSpriteCache(FOOD, Math.round(laneW * 0.26 * adpr), () => false);
+    spins = FOOD.map((k) => spinStrip(food[k], SPIN_STEPS));
+    shadowImg = shadowSprite(SHADOW, adpr);
+    art = buildCrowdSprites(laneW, adpr, places, theme?.art);
+    const ads = places.map((p) => buildBillboard(p.img, p.label, t('boardCta'), laneW, adpr));
+    const signs = (theme?.signs?.[locale] || []).map((lines) => buildSign(lines, laneW, adpr));
     // Alternate feast ads with event signs: ad, sign, ad, sign…
     boardSprites = ads.flatMap((ad, i) => (signs.length ? [ad, signs[i % signs.length]] : [ad]));
-    entities.forEach((e) => {
-      if (e.active && e.cat === 'gates') e.sprites = buildGateSprites(e.gates, laneW, dpr);
-    });
-    if (!s.running) draw();
+    tutLines = [t('tutTime'), t('tutDrag'), t('tutGates'), t('tutFeed')];
+    fx.warm('😋', '#ffffff', false); // the most common popup, ready before the first kill
+    for (let i = 0; i < entities.length; i++) {
+      const e = entities[i];
+      if (e.active && e.cat === 'gates') e.sprites = gateSprites(e.gates);
+    }
+  }
+
+  // Gate panels repeat a lot (+5, ×2, ÷2…): build each label once per resize.
+  function gateSprites(gates) {
+    return gates.map((g) => gateMemo.get(gateLabel(g), () => buildGateSprites([g], laneW, adpr)[0]));
   }
 
   // ---------- input ----------
@@ -150,7 +208,12 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
   function spawn(props) {
     const e = acquire(entities);
     if (!e) return null;
-    Object.assign(e, { active: true, hitT: 0, taken: null, bob: Math.random() * 6.28 }, props);
+    Object.assign(e, props);
+    e.active = true;
+    e.hitT = 0;
+    e.taken = null;
+    e.bob = Math.random() * 6.28;
+    e.isTarget = TARGETS.has(e.cat);
     return e;
   }
 
@@ -162,7 +225,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
     const seg = pickSegment(Math.random, Math.min(1, s.elapsed / (ROUND.seconds * 1.25)), s.count, type);
     const z = SQUAD.spawnZ;
     if (seg.type === 'gates') {
-      spawn({ cat: 'gates', x: 0, z, gates: seg.gates, sprites: buildGateSprites(seg.gates, laneW, dpr) });
+      spawn({ cat: 'gates', x: 0, z, gates: seg.gates, sprites: gateSprites(seg.gates) });
     } else if (seg.type === 'horde') {
       seg.eaters.forEach((ea) => spawn({
         cat: ea.big ? 'big' : 'eater', x: ea.x, z: z + ea.dz, hp: ea.hp, maxHp: ea.hp,
@@ -195,10 +258,12 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
       const b = acquire(bullets);
       if (!b) return;
       const slot = slots[Math.floor(Math.random() * slots.length)];
-      Object.assign(b, {
-        active: true, x: s.sx + slot.dx, z: SQUAD_Z + slot.dz + 0.3, dmg,
-        kind: FOOD[Math.floor(Math.random() * FOOD.length)], spin: Math.random() * 6.28,
-      });
+      b.active = true;
+      b.x = s.sx + slot.dx;
+      b.z = SQUAD_Z + slot.dz + 0.3;
+      b.dmg = dmg;
+      b.kind = Math.floor(Math.random() * FOOD.length);
+      b.spin = Math.random() * 6.28;
     }
   }
 
@@ -207,7 +272,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
     if (!force && (s.bubble || s.bubbleGap > 0)) return;
     const text = chatter(event);
     if (!text) return;
-    s.bubble = { lines: wrapText(text, Math.min(W - 40, 280)), life: BUBBLE.life };
+    s.bubble = { card: overlays.makeBubble(wrapText(text, Math.min(W - 40, 280))), life: BUBBLE.life };
     s.idleT = BUBBLE.idleEvery;
   }
 
@@ -376,9 +441,9 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
   }
 
   function hitTarget(b, prevZ) {
-    for (let i = 0; i < entities.length; i++) {
-      const e = entities[i];
-      if (!e.active || !TARGETS.has(e.cat)) continue;
+    for (let i = 0; i < targets.length; i++) {
+      const e = targets[i];
+      if (!e.active) continue;
       if (e.z < prevZ - 0.4 || e.z > b.z + 0.4) continue;
       if (Math.abs(e.x - b.x) > HALF_W[e.cat]) continue;
       e.hp -= b.dmg;
@@ -390,6 +455,8 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
   }
 
   function updateBullets(dt) {
+    targets.length = 0;
+    for (let i = 0; i < entities.length; i++) if (entities[i].active && entities[i].isTarget) targets.push(entities[i]);
     for (let i = 0; i < bullets.length; i++) {
       const b = bullets[i];
       if (!b.active) continue;
@@ -414,7 +481,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
       }
       if (e.cat === 'gates') {
         if (e.taken === null && prevZ > SQUAD_Z && e.z <= SQUAD_Z) passGate(e);
-      } else if (TARGETS.has(e.cat) && e.z <= SQUAD_Z + radius * 0.8 && Math.abs(e.x - s.sx) < radius + HALF_W[e.cat]) {
+      } else if (e.isTarget && e.z <= SQUAD_Z + radius * 0.8 && Math.abs(e.x - s.sx) < radius + HALF_W[e.cat]) {
         e.active = false;
         hurt(contactLoss(e.cat === 'eater' || e.cat === 'big' ? 'eater' : 'block', Math.ceil(e.hp)), e);
       }
@@ -435,88 +502,32 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
 
   // ---------- render ----------
   function draw() {
-    if (!sky) return;
+    if (!backdrop) return;
     ox = s.shake > 0 ? (Math.random() - 0.5) * 16 * s.shake : 0;
     oy = s.shake > 0 ? (Math.random() - 0.5) * 16 * s.shake : 0;
     ctx.setTransform(dpr, 0, 0, dpr, ox * dpr, oy * dpr);
-    ctx.drawImage(sky, 0, 0, W, horizonY + 2);
-    drawGround();
+    ctx.drawImage(backdrop, 0, 0, W, H);
+    groundLayer.drawMoving(ctx, s.dist, W, horizonY);
     drawWorld();
     bees?.draw(ctx);
     fx.draw();
     if (s.bubble) drawBubble();
     if (s.flash > 0) {
-      ctx.fillStyle = `rgba(255,49,49,${s.flash * 0.22})`;
+      ctx.globalAlpha = s.flash * 0.22;
+      ctx.fillStyle = COLORS.red;
       ctx.fillRect(-20, -20, W + 40, H + 40);
+      ctx.globalAlpha = 1;
     }
-    if (s.countdown > 0) drawCountdown();
-  }
-
-  // Adds one road-space quad to the current path (callers fill once per colour).
-  function quad(l0, l1, z0, z1) {
-    ctx.moveTo(xAt(l0, z0), yAt(z0));
-    ctx.lineTo(xAt(l1, z0), yAt(z0));
-    ctx.lineTo(xAt(l1, z1), yAt(z1));
-    ctx.lineTo(xAt(l0, z1), yAt(z1));
-    ctx.closePath();
-  }
-
-  function fillQuads(color, spans, z0, z1) {
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    spans.forEach(([l0, l1]) => quad(l0, l1, z0, z1));
-    ctx.fill();
-  }
-
-  // Every other half-tile of `spans`, scrolled by distance — one fill per colour.
-  function fillStripes(color, spans, shift) {
-    if (!color) return;
-    const off = s.dist % TILE;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    for (let k = -1; k * TILE < SQUAD.spawnZ; k++) {
-      const z0 = k * TILE - off + shift;
-      spans.forEach(([l0, l1]) => quad(l0, l1, z0, z0 + TILE / 2));
-    }
-    ctx.fill();
-  }
-
-  function drawGround() {
-    const zNear = -SQUAD.camDist * 0.2;
-    const zFar = SQUAD.spawnZ + 40;
-    const edge = SQUAD.roadHalf;
-    ctx.fillStyle = ground.field;
-    ctx.fillRect(0, horizonY, W, H - horizonY);
-    const sides = [[-8, -edge - 0.12], [edge + 0.12, 8]];
-    const curbs = [[-edge - 0.12, -edge], [edge, edge + 0.12]];
-    fillQuads(ground.side, sides, zNear, zFar);
-    fillQuads(ground.road, [[-edge, edge]], zNear, zFar);
-    fillStripes(ground.sideAlt, sides, 0); // mowed-grass stripes
-    fillStripes(ground.roadStripe, [[-edge, edge]], 0);
-    if (ground.edgeA === ground.edgeB) {
-      fillQuads(ground.edgeA, curbs, zNear, zFar);
-    } else {
-      fillStripes(ground.edgeA, curbs, 0);
-      fillStripes(ground.edgeB, curbs, TILE / 2);
-    }
-    if (ground.lanes) { // athletics track lane lines
-      fillQuads(ground.lanes, LANE_LINES.map((l) => [l - 0.02, l + 0.02]), zNear, zFar);
-    }
-    ctx.fillStyle = haze;
-    ctx.fillRect(0, horizonY, W, (groundY - horizonY) * 0.16);
-  }
-
-  function makeHaze() {
-    const g = ctx.createLinearGradient(0, horizonY, 0, horizonY + (groundY - horizonY) * 0.16);
-    g.addColorStop(0, `rgba(${ground.haze},1)`);
-    g.addColorStop(1, `rgba(${ground.haze},0)`);
-    return g;
+    if (s.countdown > 0) overlays.drawCountdown(ctx, s.countdown, W / 2, H * 0.3, tutLines);
   }
 
   function drawWorld() {
     drawList.length = 0;
-    entities.forEach((e) => { if (e.active && e.z > -SQUAD.camDist * 0.6) drawList.push(e); });
-    drawList.sort((a, b) => b.z - a.z);
+    for (let i = 0; i < entities.length; i++) {
+      const e = entities[i];
+      if (e.active && e.z > -SQUAD.camDist * 0.6) drawList.push(e);
+    }
+    drawList.sort(byDepth);
     let squadDrawn = false;
     for (let i = 0; i < drawList.length; i++) {
       const e = drawList[i];
@@ -534,17 +545,18 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
   }
 
   function sprite(img, x, y, sc, extra = 1) {
-    const w = (img.width / dpr) * sc * extra;
-    const h = (img.height / dpr) * sc * extra;
+    const w = (img.width / adpr) * sc * extra;
+    const h = (img.height / adpr) * sc * extra;
     ctx.drawImage(img, x - w / 2, y - h, w, h);
     return h;
   }
 
+  // Pre-rendered ellipse, stretched to size: one blit instead of a path fill.
   function shadow(x, y, rx, sc) {
-    ctx.fillStyle = SHADOW;
-    ctx.beginPath();
-    ctx.ellipse(x, y, rx, 5 * sc + 1, 0, 0, Math.PI * 2);
-    ctx.fill();
+    const ry = 5 * sc + 1;
+    const w = (rx * 2) / (1 - shadowImg.padX * 2);
+    const h = (ry * 2) / (1 - shadowImg.padY * 2);
+    ctx.drawImage(shadowImg, x - w / 2, y - h / 2, w, h);
   }
 
   function drawEntity(e) {
@@ -556,11 +568,11 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
       // Near the squad, the panel it will actually take stays bright and the other dims,
       // so steering down the middle never looks like it grabs both.
       const chosen = e.taken ?? (e.z < GATE_PREVIEW_Z ? gateSide(s.sx) : null);
-      e.sprites.forEach((sp, side) => {
-        if (side === e.taken) return;
+      for (let side = 0; side < e.sprites.length; side++) {
+        if (side === e.taken) continue;
         ctx.globalAlpha = chosen === null || side === chosen ? 1 : GATE_DIM;
-        sprite(sp, xAt(side ? 0.75 : -0.75, e.z), y, sc);
-      });
+        sprite(e.sprites[side], xAt(side ? 0.75 : -0.75, e.z), y, sc);
+      }
       ctx.globalAlpha = 1;
     } else if (e.cat === 'board') {
       sprite(e.sprite, x, y, sc);
@@ -596,19 +608,22 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
     hpLabel(Math.ceil(e.hp), x, y - h * 1.6, h * 2.2, '#ffffff');
   }
 
+  // Spin comes from pre-rotated frames: axis-aligned blits, no setTransform/trig.
   function drawBullets() {
-    const size = laneW * 0.26;
+    const size = laneW * 0.26 * SPIN_PAD;
+    const turn = SPIN_STEPS / (Math.PI * 2);
     for (let i = 0; i < bullets.length; i++) {
       const b = bullets[i];
       if (!b.active) continue;
       const sc = scaleAt(b.z);
       const d = size * sc;
-      const cos = Math.cos(b.spin) * dpr;
-      const sin = Math.sin(b.spin) * dpr;
-      ctx.setTransform(cos, sin, -sin, cos, (xAt(b.x, b.z) + ox) * dpr, (yAt(b.z) - laneW * 0.45 * sc + oy) * dpr);
-      ctx.drawImage(foodSprites[b.kind], -d / 2, -d / 2, d, d);
+      const strip = spins[b.kind];
+      const cell = strip.cell;
+      const frame = Math.floor(b.spin * turn) % SPIN_STEPS;
+      const x = xAt(b.x, b.z);
+      const y = yAt(b.z) - laneW * 0.45 * sc;
+      ctx.drawImage(strip, frame * cell, 0, cell, cell, x - d / 2, y - d / 2, d, d);
     }
-    ctx.setTransform(dpr, 0, 0, dpr, ox * dpr, oy * dpr);
   }
 
   function refreshSlots() {
@@ -649,95 +664,33 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
   function drawCountBanner() {
     const x = xAt(s.sx, SQUAD_Z);
     const y = squadTopY() - squadRadius(s.count) * laneW * 0.35;
-    const pop = 1 + s.bumpT * 0.8;
-    const text = `👨‍🍳 ${s.count}`;
-    ctx.font = `900 ${Math.round(20 * pop)}px ${FONT}`;
-    const w = ctx.measureText(text).width + 22;
-    const h = 30 * pop;
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(x - w / 2, y - h / 2, w, h, h / 2);
-    else ctx.rect(x - w / 2, y - h / 2, w, h);
-    ctx.fillStyle = COLORS.red;
-    ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = '#ffffff';
-    ctx.stroke();
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, x, y + 1);
+    overlays.drawBanner(ctx, s.count, x, y, 1 + s.bumpT * 0.8);
   }
 
   function drawBubble() {
     const b = s.bubble;
     const pop = Math.min(1, (BUBBLE.life - b.life) / 0.18);
-    const lineH = 19;
-    ctx.font = `800 15px ${FONT}`;
-    const textW = Math.max(...b.lines.map((l) => ctx.measureText(l).width));
-    const bw = textW + 28;
-    const bh = b.lines.length * lineH + 18;
     const headX = xAt(s.sx, SQUAD_Z);
     const tipY = squadTopY() - squadRadius(s.count) * laneW * 0.35 - 20;
-    const bx = Math.max(10, Math.min(W - bw - 10, headX - bw / 2));
-    const by = tipY - bh - 12;
-    ctx.save();
-    ctx.globalAlpha = Math.min(1, b.life / 0.3);
-    ctx.translate(headX, tipY);
-    ctx.scale(0.6 + pop * 0.4, 0.6 + pop * 0.4);
-    ctx.translate(-headX, -tipY);
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 16);
-    else ctx.rect(bx, by, bw, bh); // iOS < 16
-    ctx.moveTo(headX - 9, by + bh - 1);
-    ctx.lineTo(headX, tipY);
-    ctx.lineTo(headX + 9, by + bh - 1);
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = COLORS.ink;
-    ctx.stroke();
-    ctx.fillRect(headX - 7.5, by + bh - 3, 15, 4); // hide the seam where the tail joins
-    ctx.fillStyle = COLORS.ink;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    b.lines.forEach((l, i) => ctx.fillText(l, bx + bw / 2, by + 9 + lineH * (i + 0.5)));
-    ctx.restore();
-  }
-
-  function drawCountdown() {
-    const n = Math.ceil(s.countdown);
-    const frac = s.countdown - Math.floor(s.countdown);
-    ctx.save();
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.translate(W / 2, H * 0.3);
-    ctx.save();
-    ctx.scale(1 + frac * 0.6, 1 + frac * 0.6);
-    ctx.globalAlpha = Math.min(1, frac * 3 + 0.2);
-    ctx.font = `900 96px ${FONT}`;
-    ctx.lineWidth = 12;
-    ctx.strokeStyle = COLORS.ink;
-    ctx.strokeText(String(n), 0, 0);
-    ctx.fillStyle = COLORS.red;
-    ctx.fillText(String(n), 0, 0);
-    ctx.restore();
-    ctx.font = `900 17px ${FONT}`;
-    ctx.lineWidth = 5;
-    [t('tutTime'), t('tutDrag'), t('tutGates'), t('tutFeed')].forEach((line, i) => {
-      ctx.strokeStyle = '#ffffff';
-      ctx.strokeText(line, 0, 90 + i * 28);
-      ctx.fillStyle = COLORS.ink;
-      ctx.fillText(line, 0, 90 + i * 28);
-    });
-    ctx.restore();
+    overlays.drawBubble(ctx, b, headX, tipY, Math.min(1, b.life / 0.3), 0.6 + pop * 0.4, W);
   }
 
   // ---------- HUD / loop ----------
-  function emitHud() {
-    onHud({
-      score: s.score, count: s.count, meters: Math.floor(s.dist), pins: s.discovered,
-      timeLeft: roundLeft(s.elapsed), timeFrac: Math.min(1, s.elapsed / ROUND.seconds), rush: isFinalStretch(s.elapsed),
-    });
+  // One reused object; score/metres text refresh at 10 Hz (each DOM text write
+  // restyles + relayouts the HUD over the canvas), everything else is instant.
+  function emitHud(dt = HUD_TEXT_EVERY) {
+    hudT += dt;
+    if (hudT >= HUD_TEXT_EVERY || !s.running) {
+      hudT = 0;
+      hud.score = s.score;
+      hud.meters = Math.floor(s.dist);
+    }
+    hud.count = s.count;
+    hud.pins = s.discovered;
+    hud.timeLeft = roundLeft(s.elapsed);
+    hud.timeFrac = Math.round(Math.min(1, s.elapsed / ROUND.seconds) * TIMEBAR_STEPS) / TIMEBAR_STEPS;
+    hud.rush = isFinalStretch(s.elapsed);
+    onHud(hud);
   }
 
   function loop() {
@@ -748,31 +701,34 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
       update(dt);
       draw();
       if (dt && s.running && s.countdown <= 0) watchPerf(dt);
-      if (s.running) emitHud();
+      if (s.running) emitHud(dt);
       rafId = !s.running && !fx.busy() ? 0 : requestAnimationFrame(frame);
     };
     cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(frame);
   }
 
-  // Low-end phones: if frames stay slow, render at a lower resolution once.
+  // Low-end phones: if frames stay slow, step the render resolution down. Only
+  // the backing store changes; sprites keep their resolution and just downscale.
   function watchPerf(dt) {
     perf.avg += (dt - perf.avg) * 0.05;
     perf.t += dt;
-    if (perf.t < 2 || perf.avg < SLOW_FRAME || dpr <= MIN_DPR) return;
-    dprCap = Math.max(MIN_DPR, dpr - 0.5);
+    if (perf.t < PERF_WINDOW || perf.avg < SLOW_FRAME || dpr <= MIN_DPR) return;
+    dprCap = Math.max(MIN_DPR, dpr - DPR_STEP);
     perf.t = 0;
     perf.avg = 1 / 60;
-    resize();
+    setRenderScale(dprCap);
   }
 
   function start() {
-    [entities, bullets].forEach((arr) => arr.forEach((o) => { o.active = false; }));
+    for (let i = 0; i < entities.length; i++) entities[i].active = false;
+    for (let i = 0; i < bullets.length; i++) bullets[i].active = false;
     fx.clear();
     s = freshState();
     s.running = true;
     s.countdown = COUNTDOWN;
     slotsFor = -1;
+    hudT = HUD_TEXT_EVERY;
     sfx.tick();
     emitHud();
     loop();
