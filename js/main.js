@@ -4,6 +4,7 @@ import {
   CUISINES, detectPlatform, storeUrl, rankFor, pickLocale, pickLine,
 } from './logic.js';
 import { makeT } from './i18n.js';
+import { pickTheme } from './themes.js';
 import { sfx } from './audio.js';
 import { createGame } from './game.js';
 import { buildLegendIcons } from './crowd-art.js';
@@ -26,7 +27,8 @@ if (params.get('dl') === '1' && STORE_URL) {
 }
 
 const locale = pickLocale(params.get('lang'));
-const t = makeT(locale);
+const theme = pickTheme(source);
+const t = makeT(locale, theme?.strings);
 document.documentElement.lang = locale;
 
 function track(event, data = {}) {
@@ -62,7 +64,7 @@ function applyStrings() {
 }
 
 function renderLegend() {
-  const icons = buildLegendIcons(Math.min(window.devicePixelRatio || 1, 2));
+  const icons = buildLegendIcons(Math.min(window.devicePixelRatio || 1, 2), theme?.art);
   const place = (host, sprites) => sprites.forEach((sprite) => {
     sprite.className = 'legend-icon legend-wide';
     sprite.setAttribute('aria-hidden', 'true');
@@ -227,7 +229,8 @@ function showGameOver(result, best, isNewBest) {
 }
 
 async function share(score) {
-  const url = `${location.origin}${location.pathname}`;
+  // Keep the event theme on shared links so friends get the same version.
+  const url = `${location.origin}${location.pathname}${theme ? `?src=${theme.id}` : ''}`;
   const text = t('shareText', { score });
   track('share', { score });
   try {
@@ -287,6 +290,8 @@ async function boot() {
   const game = createGame({
     canvas: $('#stage'),
     places,
+    theme,
+    locale,
     sfx,
     t,
     chatter: makeChatter(),

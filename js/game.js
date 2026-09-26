@@ -8,7 +8,8 @@ import {
   contactLoss, speedAt, pickSegment, blockReward, crowdScore, dragToX, ROUND, roundLeft, isFinalStretch,
 } from './squad-logic.js';
 import { buildSpriteCache } from './art.js';
-import { buildBillboard, renderSky } from './scenery.js';
+import { buildBillboard, buildSign, renderSky, renderStadium, GROUNDS } from './scenery.js';
+import { createBees } from './bees.js';
 import { buildCrowdSprites, buildGateSprites } from './crowd-art.js';
 import { createFx } from './fx.js';
 
@@ -28,12 +29,13 @@ const MAX_EMITTERS = 5;
 const KEY_SPEED = 3.2; // road units per second with arrow keys
 const HALF_W = { eater: 0.24, big: 0.42, block: 0.72, boss: 0.95 };
 const TARGETS = new Set(['eater', 'big', 'block', 'boss']);
+const LANE_LINES = [-0.75, 0, 0.75];
 const OPENING = ['gates', 'horde', 'gates', 'block', 'horde', 'gates']; // teaches each mechanic once
 
 const pool = (n) => Array.from({ length: n }, () => ({ active: false }));
 const acquire = (arr) => arr.find((o) => !o.active) || null;
 
-export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
+export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t, chatter, onHud, onEnd }) {
   const ctx = canvas.getContext('2d', { alpha: false });
   const fx = createFx(ctx);
   const entities = pool(110);
@@ -41,6 +43,9 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
   const drawList = [];
   const drag = { active: false, px: 0 };
   const keys = { left: false, right: false };
+  const scene = theme?.scene || {};
+  const ground = GROUNDS[scene.ground] || GROUNDS.street;
+  const bees = scene.bees ? createBees(scene.bees) : null;
 
   let W = 0; let H = 0; let dpr = 1;
   let horizonY = 0; let groundY = 0; let laneW = 0;
@@ -78,11 +83,15 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
     horizonY = H * 0.24;
     groundY = H * 0.93;
     laneW = Math.min(W * 0.31, 180);
-    sky = renderSky(W, horizonY, dpr);
+    sky = scene.sky === 'stadium' ? renderStadium(W, horizonY, dpr) : renderSky(W, horizonY, dpr);
+    bees?.resize(W, horizonY * 0.55, H * 0.55, laneW * 0.2, dpr);
     haze = makeHaze();
     foodSprites = buildSpriteCache(FOOD, Math.round(laneW * 0.26 * dpr), () => false);
-    art = buildCrowdSprites(laneW, dpr, places);
-    boardSprites = places.map((p) => buildBillboard(p.img, p.label, t('boardCta'), laneW, dpr));
+    art = buildCrowdSprites(laneW, dpr, places, theme?.art);
+    const ads = places.map((p) => buildBillboard(p.img, p.label, t('boardCta'), laneW, dpr));
+    const signs = (theme?.signs?.[locale] || []).map((lines) => buildSign(lines, laneW, dpr));
+    // Alternate feast ads with event signs: ad, sign, ad, sign…
+    boardSprites = ads.flatMap((ad, i) => (signs.length ? [ad, signs[i % signs.length]] : [ad]));
     entities.forEach((e) => {
       if (e.active && e.cat === 'gates') e.sprites = buildGateSprites(e.gates, laneW, dpr);
     });
@@ -308,6 +317,7 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
     s.flash = Math.max(0, s.flash - dt * 2.5);
     s.bumpT = Math.max(0, s.bumpT - dt);
     fx.update(dt);
+    bees?.update(dt);
     updateBubble(dt);
     if (keys.left !== keys.right) s.x = dragToX(s.x, (keys.left ? -1 : 1) * KEY_SPEED * dt * roadPx() / SQUAD.dragGain, roadPx());
     const reach = squadReach(s.count);
@@ -425,6 +435,7 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
     ctx.drawImage(sky, 0, 0, W, horizonY + 2);
     drawGround();
     drawWorld();
+    bees?.draw(ctx);
     fx.draw();
     if (s.bubble) drawBubble();
     if (s.flash > 0) {
@@ -448,24 +459,33 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
     const zNear = -SQUAD.camDist * 0.2;
     const zFar = SQUAD.spawnZ + 40;
     const edge = SQUAD.roadHalf;
-    ctx.fillStyle = '#f4d6b0';
+    ctx.fillStyle = ground.field;
     ctx.fillRect(0, horizonY, W, H - horizonY);
-    ctx.fillStyle = '#e8c49a';
+    ctx.fillStyle = ground.side;
     band(-8, -edge - 0.12, zNear, zFar);
     band(edge + 0.12, 8, zNear, zFar);
-    ctx.fillStyle = '#6a605d';
+    ctx.fillStyle = ground.road;
     band(-edge, edge, zNear, zFar);
     const off = s.dist % TILE;
     for (let k = -1; k * TILE < SQUAD.spawnZ; k++) {
       const z0 = k * TILE - off;
-      ctx.fillStyle = 'rgba(255,255,255,0.07)';
+      if (ground.sideAlt) { // mowed-grass stripes
+        ctx.fillStyle = ground.sideAlt;
+        band(-8, -edge - 0.12, z0, z0 + TILE / 2);
+        band(edge + 0.12, 8, z0, z0 + TILE / 2);
+      }
+      ctx.fillStyle = ground.roadStripe;
       band(-edge, edge, z0, z0 + TILE / 2);
-      ctx.fillStyle = COLORS.red;
+      ctx.fillStyle = ground.edgeA;
       band(-edge - 0.12, -edge, z0, z0 + TILE / 2);
       band(edge, edge + 0.12, z0, z0 + TILE / 2);
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = ground.edgeB;
       band(-edge - 0.12, -edge, z0 + TILE / 2, z0 + TILE);
       band(edge, edge + 0.12, z0 + TILE / 2, z0 + TILE);
+    }
+    if (ground.lanes) { // athletics track lane lines
+      ctx.fillStyle = ground.lanes;
+      LANE_LINES.forEach((l) => band(l - 0.02, l + 0.02, zNear, zFar));
     }
     ctx.fillStyle = haze;
     ctx.fillRect(0, horizonY, W, (groundY - horizonY) * 0.16);
@@ -473,8 +493,8 @@ export function createGame({ canvas, places, sfx, t, chatter, onHud, onEnd }) {
 
   function makeHaze() {
     const g = ctx.createLinearGradient(0, horizonY, 0, horizonY + (groundY - horizonY) * 0.16);
-    g.addColorStop(0, 'rgba(255,243,227,1)');
-    g.addColorStop(1, 'rgba(255,243,227,0)');
+    g.addColorStop(0, `rgba(${ground.haze},1)`);
+    g.addColorStop(1, `rgba(${ground.haze},0)`);
     return g;
   }
 

@@ -181,10 +181,13 @@ export const STRINGS = {
   },
 };
 
-export function makeT(locale) {
+// `overrides` ({ tr: {...}, en: {...} }) lets an event theme replace individual strings.
+export function makeT(locale, overrides = {}) {
   const table = STRINGS[locale] || STRINGS.tr;
+  const extra = overrides[locale] || {};
+  const extraTr = overrides.tr || {};
   return (key, vars) => {
-    const raw = table[key] ?? STRINGS.tr[key] ?? key;
+    const raw = extra[key] ?? table[key] ?? extraTr[key] ?? STRINGS.tr[key] ?? key;
     if (!vars || typeof raw !== 'string') return raw;
     return raw.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
   };

@@ -102,7 +102,7 @@ function star(ctx, x, y, r, fill, lw) {
 }
 
 // Hungry customer walking toward the camera: hangry face, drool, fork up.
-function eater(size, dpr, { skin = '#c9e3a1', shirt = '#7b61ff', big = false } = {}) {
+function eater(size, dpr, { skin = '#c9e3a1', shirt = '#7b61ff', big = false, label = big ? 'OBUR' : 'AÇ' } = {}) {
   const w = size * 0.8; const h = size;
   const { c, ctx } = makeCanvas(w + 6, h + 6, dpr);
   ctx.translate(3, 3);
@@ -120,7 +120,7 @@ function eater(size, dpr, { skin = '#c9e3a1', shirt = '#7b61ff', big = false } =
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = RED;
-  ctx.fillText(big ? 'OBUR' : 'AÇ', cx, h * 0.61, w * 0.3);
+  ctx.fillText(label, cx, h * 0.61, w * 0.3);
   // fork (left) and knife (right) raised
   ctx.strokeStyle = '#9aa0aa';
   ctx.lineWidth = lw * 1.2;
@@ -243,28 +243,33 @@ function lockedPlace(img, label, laneW, dpr) {
   return c;
 }
 
-export function buildCrowdSprites(laneW, dpr, places) {
+const DEFAULT_SHIRTS = ['#7b61ff', '#2a9df4', '#ff8a00'];
+
+// `theme` (optional) re-labels the crowd: e.g. İTÜ shirts and a "FİNAL" boss.
+export function buildCrowdSprites(laneW, dpr, places, theme = {}) {
   const member = Math.round(laneW * 0.46);
+  const shirts = theme.shirts || DEFAULT_SHIRTS;
+  const label = theme.eaterLabel;
   return {
     chef: chefBack(member, dpr, false),
     leader: chefBack(member * 1.3, dpr, true),
     eaters: [
-      eater(laneW * 0.62, dpr, { shirt: '#7b61ff' }),
-      eater(laneW * 0.62, dpr, { shirt: '#2a9df4', skin: '#d4e8a8' }),
-      eater(laneW * 0.62, dpr, { shirt: '#ff8a00', skin: '#bfdc9a' }),
+      eater(laneW * 0.62, dpr, { shirt: shirts[0], label }),
+      eater(laneW * 0.62, dpr, { shirt: shirts[1], skin: '#d4e8a8', label }),
+      eater(laneW * 0.62, dpr, { shirt: shirts[2], skin: '#bfdc9a', label }),
     ],
-    big: eater(laneW * 1.1, dpr, { shirt: '#3a1d10', skin: '#b6d58f', big: true }),
-    boss: eater(laneW * 2.1, dpr, { shirt: RED, skin: '#a9cf7f', big: true }),
+    big: eater(laneW * 1.1, dpr, { shirt: '#3a1d10', skin: '#b6d58f', big: true, label: theme.bigLabel }),
+    boss: eater(laneW * 2.1, dpr, { shirt: RED, skin: '#a9cf7f', big: true, label: theme.bossLabel }),
     places: places.map((p) => lockedPlace(p.img, p.label, laneW, dpr)),
   };
 }
 
 // Small icons for the start-screen legend.
-export function buildLegendIcons(dpr) {
+export function buildLegendIcons(dpr, theme = {}) {
   return {
     gate: buildGateSprite({ op: 'mul', value: 2 }, 34, dpr),
     gateBad: buildGateSprite({ op: 'sub', value: 3 }, 34, dpr),
-    eater: eater(40, dpr),
+    eater: eater(40, dpr, { shirt: (theme.shirts || DEFAULT_SHIRTS)[0], label: theme.eaterLabel }),
     big: eater(40, dpr, { shirt: '#3a1d10', skin: '#b6d58f', big: true }),
     chef: chefBack(40, dpr, true),
   };
