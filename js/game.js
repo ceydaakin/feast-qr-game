@@ -10,12 +10,15 @@ import {
 import { buildSpriteCache } from './art.js';
 import { buildBillboard, buildSign, renderSky, renderStadium, GROUNDS } from './scenery.js';
 import { createBees } from './bees.js';
+import { createLabelCache } from './labels.js';
 import { buildCrowdSprites, buildGateSprites } from './crowd-art.js';
 import { createFx } from './fx.js';
 
 const MAX_DPR = 2;
 const MIN_DPR = 1;
-const SLOW_FRAME = 1 / 45; // average frame time above this drops render resolution
+const SLOW_FRAME = 1 / 50; // average frame time above this drops render resolution
+const COUNTDOWN = 2;
+const SHADOW = 'rgba(40,20,10,0.2)';
 const STEER_RATE = 18;
 const MAX_DT = 1 / 30;
 const COLORS = { gold: '#ffd23f', red: '#ff3131', ink: '#3a1d10', green: '#2bb673', food: '#ffb100' };
@@ -38,6 +41,7 @@ const acquire = (arr) => arr.find((o) => !o.active) || null;
 export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t, chatter, onHud, onEnd }) {
   const ctx = canvas.getContext('2d', { alpha: false });
   const fx = createFx(ctx);
+  const labels = createLabelCache({ font: FONT, ink: COLORS.ink });
   const entities = pool(110);
   const bullets = pool(150);
   const drawList = [];
@@ -83,6 +87,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
     horizonY = H * 0.24;
     groundY = H * 0.93;
     laneW = Math.min(W * 0.31, 180);
+    labels.reset(dpr);
     sky = scene.sky === 'stadium' ? renderStadium(W, horizonY, dpr) : renderSky(W, horizonY, dpr);
     bees?.resize(W, horizonY * 0.55, H * 0.55, laneW * 0.2, dpr);
     haze = makeHaze();
@@ -126,7 +131,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
       cancelAnimationFrame(rafId);
       rafId = 0;
     } else if (s.running) {
-      s.countdown = Math.max(s.countdown, 3);
+      s.countdown = Math.max(s.countdown, COUNTDOWN);
       loop();
     }
   }
@@ -445,13 +450,32 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
     if (s.countdown > 0) drawCountdown();
   }
 
-  function band(l0, l1, z0, z1) {
-    ctx.beginPath();
+  // Adds one road-space quad to the current path (callers fill once per colour).
+  function quad(l0, l1, z0, z1) {
     ctx.moveTo(xAt(l0, z0), yAt(z0));
     ctx.lineTo(xAt(l1, z0), yAt(z0));
     ctx.lineTo(xAt(l1, z1), yAt(z1));
     ctx.lineTo(xAt(l0, z1), yAt(z1));
     ctx.closePath();
+  }
+
+  function fillQuads(color, spans, z0, z1) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    spans.forEach(([l0, l1]) => quad(l0, l1, z0, z1));
+    ctx.fill();
+  }
+
+  // Every other half-tile of `spans`, scrolled by distance — one fill per colour.
+  function fillStripes(color, spans, shift) {
+    if (!color) return;
+    const off = s.dist % TILE;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    for (let k = -1; k * TILE < SQUAD.spawnZ; k++) {
+      const z0 = k * TILE - off + shift;
+      spans.forEach(([l0, l1]) => quad(l0, l1, z0, z0 + TILE / 2));
+    }
     ctx.fill();
   }
 
@@ -461,31 +485,20 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
     const edge = SQUAD.roadHalf;
     ctx.fillStyle = ground.field;
     ctx.fillRect(0, horizonY, W, H - horizonY);
-    ctx.fillStyle = ground.side;
-    band(-8, -edge - 0.12, zNear, zFar);
-    band(edge + 0.12, 8, zNear, zFar);
-    ctx.fillStyle = ground.road;
-    band(-edge, edge, zNear, zFar);
-    const off = s.dist % TILE;
-    for (let k = -1; k * TILE < SQUAD.spawnZ; k++) {
-      const z0 = k * TILE - off;
-      if (ground.sideAlt) { // mowed-grass stripes
-        ctx.fillStyle = ground.sideAlt;
-        band(-8, -edge - 0.12, z0, z0 + TILE / 2);
-        band(edge + 0.12, 8, z0, z0 + TILE / 2);
-      }
-      ctx.fillStyle = ground.roadStripe;
-      band(-edge, edge, z0, z0 + TILE / 2);
-      ctx.fillStyle = ground.edgeA;
-      band(-edge - 0.12, -edge, z0, z0 + TILE / 2);
-      band(edge, edge + 0.12, z0, z0 + TILE / 2);
-      ctx.fillStyle = ground.edgeB;
-      band(-edge - 0.12, -edge, z0 + TILE / 2, z0 + TILE);
-      band(edge, edge + 0.12, z0 + TILE / 2, z0 + TILE);
+    const sides = [[-8, -edge - 0.12], [edge + 0.12, 8]];
+    const curbs = [[-edge - 0.12, -edge], [edge, edge + 0.12]];
+    fillQuads(ground.side, sides, zNear, zFar);
+    fillQuads(ground.road, [[-edge, edge]], zNear, zFar);
+    fillStripes(ground.sideAlt, sides, 0); // mowed-grass stripes
+    fillStripes(ground.roadStripe, [[-edge, edge]], 0);
+    if (ground.edgeA === ground.edgeB) {
+      fillQuads(ground.edgeA, curbs, zNear, zFar);
+    } else {
+      fillStripes(ground.edgeA, curbs, 0);
+      fillStripes(ground.edgeB, curbs, TILE / 2);
     }
     if (ground.lanes) { // athletics track lane lines
-      ctx.fillStyle = ground.lanes;
-      LANE_LINES.forEach((l) => band(l - 0.02, l + 0.02, zNear, zFar));
+      fillQuads(ground.lanes, LANE_LINES.map((l) => [l - 0.02, l + 0.02]), zNear, zFar);
     }
     ctx.fillStyle = haze;
     ctx.fillRect(0, horizonY, W, (groundY - horizonY) * 0.16);
@@ -526,7 +539,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
   }
 
   function shadow(x, y, rx, sc) {
-    ctx.fillStyle = 'rgba(40,20,10,0.2)';
+    ctx.fillStyle = SHADOW;
     ctx.beginPath();
     ctx.ellipse(x, y, rx, 5 * sc + 1, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -559,15 +572,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
   }
 
   function hpLabel(value, x, y, size, color) {
-    ctx.font = `900 ${Math.round(size)}px ${FONT}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.lineJoin = 'round';
-    ctx.lineWidth = Math.max(3, size * 0.22);
-    ctx.strokeStyle = COLORS.ink;
-    ctx.strokeText(String(value), x, y);
-    ctx.fillStyle = color;
-    ctx.fillText(String(value), x, y);
+    labels.draw(ctx, value, x, y, size, color);
   }
 
   function hpBar(e, x, y, w) {
@@ -608,6 +613,17 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
     refreshSlots();
     if (!slots.length) return;
     const running = s.running && s.countdown <= 0;
+    // All squad shadows in one path: 40+ separate fills are costly on phones.
+    ctx.fillStyle = SHADOW;
+    ctx.beginPath();
+    for (let i = 0; i < slots.length; i++) {
+      const z = SQUAD_Z + slots[i].dz;
+      const sc = scaleAt(z);
+      const x = xAt(s.sx + slots[i].dx, z);
+      ctx.moveTo(x + laneW * sc * 0.14, yAt(z));
+      ctx.ellipse(x, yAt(z), laneW * sc * 0.14, 5 * sc + 1, 0, 0, Math.PI * 2);
+    }
+    ctx.fill();
     for (let k = 0; k < slotOrder.length; k++) {
       const i = slotOrder[k];
       const slot = slots[i];
@@ -615,7 +631,6 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
       const sc = scaleAt(z);
       const x = xAt(s.sx + slot.dx, z);
       const bob = running ? Math.abs(Math.sin(s.runPhase + i * 1.7)) * 4 * sc : 0;
-      shadow(x, yAt(z), laneW * sc * 0.14, sc);
       sprite(i === 0 ? art.leader : art.chef, x, yAt(z) - bob, sc);
     }
     drawCountBanner();
@@ -746,7 +761,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
     fx.clear();
     s = freshState();
     s.running = true;
-    s.countdown = 3;
+    s.countdown = COUNTDOWN;
     slotsFor = -1;
     sfx.tick();
     emitHud();

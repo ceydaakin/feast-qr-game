@@ -10,13 +10,13 @@ export const SQUAD = Object.freeze({
   roadHalf: 1.5,
   edgePad: 0.3,
   dragGain: 1.6, // full-road swipe moves the squad 1.6 road widths (feels snappy)
-  chefDps: 5,
+  chefDps: 6,
   fireEvery: 0.09,
   bulletSpeed: 52,
   bulletRange: 42,
-  baseSpeed: 9,
-  maxSpeed: 15,
-  speedRampSec: 32, // mostly ramped inside the 45 s round
+  baseSpeed: 11,
+  maxSpeed: 18,
+  speedRampSec: 25, // mostly ramped inside the 45 s round
   eaterWalk: 2.4,
   camDist: 20,
   spawnZ: 56,
@@ -87,7 +87,7 @@ export function hordeHp(difficulty, count) {
 
 // Seconds of full squad fire a locked restaurant soaks up, rounded to a friendly number.
 export function blockHp(difficulty, count) {
-  const raw = count * SQUAD.chefDps * lerp(1.6, 3.4, clamp(difficulty, 0, 1));
+  const raw = count * SQUAD.chefDps * lerp(1.1, 1.9, clamp(difficulty, 0, 1));
   const step = raw > 200 ? 10 : raw > 40 ? 5 : 1;
   return Math.max(4, Math.round(raw / step) * step);
 }
@@ -138,7 +138,7 @@ function blockSegment(rnd, difficulty, count) {
 }
 
 function bossSegment(rnd, difficulty, count) {
-  return { type: 'boss', x: 0, hp: Math.round(blockHp(difficulty, count) * 1.4) };
+  return { type: 'boss', x: 0, hp: Math.round(blockHp(difficulty, count) * 1.25) };
 }
 
 const BUILDERS = { gates: gatesSegment, horde: hordeSegment, block: blockSegment, boss: bossSegment };
