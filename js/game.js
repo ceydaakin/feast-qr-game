@@ -19,6 +19,8 @@ const MIN_DPR = 1;
 const SLOW_FRAME = 1 / 50; // average frame time above this drops render resolution
 const COUNTDOWN = 2;
 const SHADOW = 'rgba(40,20,10,0.2)';
+const GATE_PREVIEW_Z = 16; // road units ahead where the chosen gate starts to stand out
+const GATE_DIM = 0.35;
 const STEER_RATE = 18;
 const MAX_DT = 1 / 30;
 const COLORS = { gold: '#ffd23f', red: '#ff3131', ink: '#3a1d10', green: '#2bb673', food: '#ffb100' };
@@ -148,7 +150,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
   function spawn(props) {
     const e = acquire(entities);
     if (!e) return null;
-    Object.assign(e, { active: true, hitT: 0, bob: Math.random() * 6.28 }, props);
+    Object.assign(e, { active: true, hitT: 0, taken: null, bob: Math.random() * 6.28 }, props);
     return e;
   }
 
@@ -286,7 +288,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
     const side = gateSide(s.sx);
     const gate = e.gates[side];
     const before = s.count;
-    e.active = false;
+    e.taken = side; // only the chosen panel breaks; the other one rolls on past the squad
     const good = isGoodGate(gate);
     setCount(applyGate(before, gate));
     if (good) sfx.bonus();
@@ -411,7 +413,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
         if (e.z < 22) e.x += (s.sx - e.x) * Math.min(1, dt * 0.45);
       }
       if (e.cat === 'gates') {
-        if (prevZ > SQUAD_Z && e.z <= SQUAD_Z) passGate(e);
+        if (e.taken === null && prevZ > SQUAD_Z && e.z <= SQUAD_Z) passGate(e);
       } else if (TARGETS.has(e.cat) && e.z <= SQUAD_Z + radius * 0.8 && Math.abs(e.x - s.sx) < radius + HALF_W[e.cat]) {
         e.active = false;
         hurt(contactLoss(e.cat === 'eater' || e.cat === 'big' ? 'eater' : 'block', Math.ceil(e.hp)), e);
@@ -551,7 +553,15 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
     const y = yAt(e.z);
     const pop = e.hitT > 0 ? 1.07 : 1;
     if (e.cat === 'gates') {
-      e.sprites.forEach((sp, side) => sprite(sp, xAt(side ? 0.75 : -0.75, e.z), y, sc));
+      // Near the squad, the panel it will actually take stays bright and the other dims,
+      // so steering down the middle never looks like it grabs both.
+      const chosen = e.taken ?? (e.z < GATE_PREVIEW_Z ? gateSide(s.sx) : null);
+      e.sprites.forEach((sp, side) => {
+        if (side === e.taken) return;
+        ctx.globalAlpha = chosen === null || side === chosen ? 1 : GATE_DIM;
+        sprite(sp, xAt(side ? 0.75 : -0.75, e.z), y, sc);
+      });
+      ctx.globalAlpha = 1;
     } else if (e.cat === 'board') {
       sprite(e.sprite, x, y, sc);
     } else if (e.cat === 'block') {
