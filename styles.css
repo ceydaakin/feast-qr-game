@@ -436,6 +436,42 @@ h2 { font-size: 30px; color: var(--red); }
   .hud-sub .hud-pill:first-child { margin-left: auto; }
 }
 
+/* Landscape phones: start card splits into chef (left) and copy + play (right)
+   so it fits the short viewport without scrolling. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .start-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    max-width: 720px;
+    padding: 12px 18px 10px;
+  }
+  .start-hero { flex: 0 0 34%; }
+  .start-body { flex: 1; min-width: 0; }
+  .start-hero .hero-chef { height: min(58dvh, 220px); }
+  .start-card h1 { font-size: 22px; }
+  .start-card .sub { margin: 4px 0 6px; font-size: 13px; }
+  .legend-chips { margin-top: 4px; }
+  .legend-bonus { padding: 2px 10px 2px 6px; font-size: 12px; }
+  .start-card .btn-primary { margin-top: 8px; padding: 10px; font-size: 20px; }
+  .start-card .hint { margin-top: 4px; font-size: 12px; }
+  .start-card .best { margin-top: 2px; }
+  .start-card .ticker { margin-top: 0; }
+  .start-card .link-app { margin-top: 0; font-size: 13px; }
+  .start-hero .round-badge { padding: 4px 10px; font-size: 11px; white-space: nowrap; }
+}
+
+@media (orientation: landscape) and (max-height: 360px) {
+  .start-card .sub { display: none; }
+  .start-card h1 { margin-bottom: 6px; font-size: 20px; }
+  .start-card { padding: 8px 14px 6px; }
+  .legend-group { padding: 4px 4px 2px; }
+  .legend-icon { width: 26px; height: 26px; }
+  .legend-wide { height: 24px; }
+  .start-card .btn-primary { padding: 8px; font-size: 18px; }
+  .start-card .ticker { height: 18px; font-size: 12px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

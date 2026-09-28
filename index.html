@@ -47,24 +47,28 @@
   <!-- START -->
   <section id="start" class="screen scrollable is-active">
     <div class="card start-card">
-      <img class="logo" src="assets/logo.webp" alt="feast." width="120" height="33">
-      <img class="hero-chef" src="assets/toss.webp" alt="" width="317" height="480" fetchpriority="high">
-      <p class="round-badge"><span aria-hidden="true">⏱</span> <span data-i18n="roundBadge"></span></p>
-      <h1 data-i18n="headline">45 saniye oynayın, feast dünyasına adım atın!</h1>
-      <p class="sub" data-i18n="subtitle"></p>
-      <div class="legend">
-        <div class="legend-group good"><span data-i18n="howGates"></span><div data-legend="gates"></div></div>
-        <div class="legend-group bad"><span data-i18n="howFeed"></span><div data-legend="eaters"></div></div>
+      <div class="start-hero">
+        <img class="logo" src="assets/logo.webp" alt="feast." width="120" height="33">
+        <img class="hero-chef" src="assets/toss.webp" alt="" width="317" height="480" fetchpriority="high">
+        <p class="round-badge"><span aria-hidden="true">⏱</span> <span data-i18n="roundBadge"></span></p>
       </div>
-      <div class="legend-chips">
-        <div class="legend-bonus legend-discover"><span aria-hidden="true">🔒</span><span data-i18n="howDiscover"></span></div>
-        <div class="legend-bonus"><span aria-hidden="true">👑</span><span data-i18n="howBoss"></span></div>
+      <div class="start-body">
+        <h1 data-i18n="headline">45 saniye oynayın, feast dünyasına adım atın!</h1>
+        <p class="sub" data-i18n="subtitle"></p>
+        <div class="legend">
+          <div class="legend-group good"><span data-i18n="howGates"></span><div data-legend="gates"></div></div>
+          <div class="legend-group bad"><span data-i18n="howFeed"></span><div data-legend="eaters"></div></div>
+        </div>
+        <div class="legend-chips">
+          <div class="legend-bonus legend-discover"><span aria-hidden="true">🔒</span><span data-i18n="howDiscover"></span></div>
+          <div class="legend-bonus"><span aria-hidden="true">👑</span><span data-i18n="howBoss"></span></div>
+        </div>
+        <button id="btn-play" class="btn btn-primary btn-pulse" type="button" data-i18n="play">45 saniye oyna</button>
+        <p class="hint">👆 <span data-i18n="howDrag"></span></p>
+        <p id="start-best" class="best"></p>
+        <div class="ticker" aria-live="polite"><span id="ticker-text"></span></div>
+        <a class="link-app" data-store="start" href="#" target="_top" rel="noopener" data-i18n="skipToApp"></a>
       </div>
-      <button id="btn-play" class="btn btn-primary btn-pulse" type="button" data-i18n="play">45 saniye oyna</button>
-      <p class="hint">👆 <span data-i18n="howDrag"></span></p>
-      <p id="start-best" class="best"></p>
-      <div class="ticker" aria-live="polite"><span id="ticker-text"></span></div>
-      <a class="link-app" data-store="start" href="#" target="_top" rel="noopener" data-i18n="skipToApp"></a>
     </div>
   </section>
 
