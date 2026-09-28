@@ -402,7 +402,7 @@ h2 { font-size: 30px; color: var(--red); }
 .app-qr-text b { font-size: 17px; font-weight: 900; color: var(--red); line-height: 1.1; }
 .app-qr-text small { font-size: 12px; font-weight: 800; opacity: .75; }
 
-@media (max-height: 700px) {
+@media (max-height: 800px) {
   .hero-chef { height: 20dvh; }
   .legend-icon { width: 30px; height: 30px; }
   .legend-chips { margin-top: 6px; }
@@ -412,10 +412,28 @@ h2 { font-size: 30px; color: var(--red); }
 }
 
 @media (max-height: 640px) {
-  .hero-chef { height: 22dvh; }
+  .hero-chef { height: 18dvh; }
   .sub { margin-bottom: 8px; font-size: 14px; }
   .btn-primary { padding: 12px; font-size: 22px; }
   .score-big span { font-size: 52px; }
+}
+
+/* Landscape phones / short windows: HUD collapses to two slim rows so it
+   doesn't cover the horizon where gates and crowds appear. */
+@media (max-height: 500px) {
+  #hud {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    padding: calc(6px + var(--safe-top)) 48px 0 14px;
+  }
+  .hud-timer { flex-basis: 100%; }
+  .hud-row { display: contents; }
+  .hud-score { font-size: 26px; }
+  .hud-squad { font-size: 16px; }
+  .hud-pill { font-size: 13px; }
+  .hud-sub .hud-pill:first-child { margin-left: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

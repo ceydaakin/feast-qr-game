@@ -40,6 +40,9 @@ const BUBBLE = { life: 2.6, gap: 1.2, idleEvery: 8.5 };
 const FONT = 'ui-rounded, system-ui, -apple-system, sans-serif';
 const FOOD = ['tomato', 'cheese', 'pepperoni', 'mushroom', 'olive', 'basil'];
 const SQUAD_Z = 2.2;
+const LANE_MAX = 180; // px; lane width also scales with height so landscape/short screens fit
+const LANE_W_FRAC = 0.31;
+const LANE_H_FRAC = 0.25;
 const BILLBOARD_EVERY = 21;
 const MAX_EMITTERS = 5;
 const KEY_SPEED = 3.2; // road units per second with arrow keys
@@ -134,7 +137,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
     adpr = dpr;
     horizonY = H * 0.24;
     groundY = H * 0.93;
-    laneW = Math.min(W * 0.31, 180);
+    laneW = Math.min(W * LANE_W_FRAC, H * LANE_H_FRAC, LANE_MAX);
     labels.reset(adpr);
     overlays.reset(adpr);
     fx.reset(adpr, W);
