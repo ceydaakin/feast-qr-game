@@ -6,6 +6,7 @@ const ITU_BLUE = ['#0b3e7a', '#1f5fae', '#3a7bd5'];
 
 export const THEMES = Object.freeze({
   itu: {
+    flow: 'reward', // Osman's intro → box → reward flow (see js/flow.js)
     scene: { sky: 'stadium', ground: 'stadium', bees: 6 },
     art: {
       eaterLabel: 'İTÜ',
