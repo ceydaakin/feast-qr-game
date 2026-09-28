@@ -9,7 +9,7 @@ import { sfx } from './audio.js';
 import { createGame } from './game.js';
 import { buildLegendIcons } from './crowd-art.js';
 import { pickFlow, introPlan } from './flow.js';
-import { playIntro } from './reward-ui.js';
+import { playIntro, openBoxScreen } from './reward-ui.js';
 
 const BEST_KEY = 'feast-game.best.v1';
 const MUTE_KEY = 'feast-game.muted.v1';
@@ -240,6 +240,18 @@ function showGameOver(result, best, isNewBest) {
   showScreen('over');
 }
 
+function showBox(result) {
+  openBoxScreen({
+    root: $('#box'),
+    button: $('#btn-box'),
+    onOpened: () => {
+      track('box_open', { score: result.score });
+      showGameOver(result, Number(storage('get', BEST_KEY)) || 0, false);
+    },
+  });
+  showScreen('box');
+}
+
 async function share(score) {
   // Keep the event theme on shared links so friends get the same version.
   const url = `${location.origin}${location.pathname}${theme ? `?src=${theme.id}` : ''}`;
@@ -337,7 +349,7 @@ async function boot() {
         storage('set', BEST_KEY, String(best));
       }
       track('end', { score: result.score, reason: result.reason });
-      setTimeout(() => showGameOver(result, best, isNewBest), 450);
+      setTimeout(() => (flow === 'reward' ? showBox(result) : showGameOver(result, best, isNewBest)), 450);
     },
   });
 
