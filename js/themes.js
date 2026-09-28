@@ -20,8 +20,7 @@ export const THEMES = Object.freeze({
       tr: {
         headline: '45 saniye oyna, yeni döneme İTÜ usulü başla!',
         roundBadge: 'Yeni döneme özel lezzet turu',
-        introBrand: 'İTÜ',
-        introLead: 'İTÜ\'lü gibi',
+        introLead: 'İTÜ\'lülere özel',
         introPromise: '45 sn\'de döneme',
         introHot: 'ÖDÜLLE',
         introTail: 'başla',
@@ -67,7 +66,7 @@ export const THEMES = Object.freeze({
       en: {
         headline: 'Play 45 seconds, start the new term the ITU way!',
         roundBadge: 'New-term taste tour',
-        introLead: 'Like an ITU student',
+        introLead: 'For ITU students',
         introPromise: 'start the term',
         introHot: 'WITH A REWARD',
         introTail: 'in 45 seconds',

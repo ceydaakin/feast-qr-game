@@ -12,7 +12,7 @@ export const INTRO_STEPS = Object.freeze([
 ]);
 
 export const REWARD_KEYS = Object.freeze([
-  'introBrand', 'introLead', 'introPromise', 'introHot', 'introTail',
+  'introLead', 'introPromise', 'introHot', 'introTail',
   'readyMain', 'readyHot', 'readyPlay',
   'boxTitle', 'boxHint', 'boxOpen',
   'rewardTitle', 'rewardCollect', 'rewardFriends', 'rewardChatTitle', 'rewardChatNote', 'rewardChat', 'rewardScore',

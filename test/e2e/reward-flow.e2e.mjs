@@ -120,6 +120,16 @@ try {
     await page.close();
   });
 
+  await check('feast leads the intro: logo on the brand, promise and ready frames', async () => {
+    const page = await open(mobile);
+    for (const step of ['brand', 'promise', 'ready']) {
+      await page.evaluate((id) => { document.getElementById('intro').dataset.step = id; }, step);
+      assert.ok(await page.isVisible(`[data-frame="${step}"] img.intro-logo`), `no feast logo on ${step}`);
+    }
+    assert.equal(await page.textContent('[data-frame="brand"]').then((x) => x.includes('İTÜ\'lülere')), true);
+    await page.close();
+  });
+
   await check('returning visitor lands on the ready screen', async () => {
     const page = await open(mobile);
     assert.equal(await page.getAttribute('#intro', 'data-step'), 'ready');

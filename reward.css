@@ -43,13 +43,12 @@
 }
 @keyframes scribble { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 
-/* 4: big brand */
-.intro-brand {
-  font: 900 min(38vw, 260px)/1 var(--font);
-  color: var(--ink);
-  letter-spacing: -.04em;
-  animation: brandPop 1s cubic-bezier(.2, .9, .3, 1.4) both;
-}
+/* 4: feast leads, İTÜ students are addressed underneath */
+.intro-brand { display: grid; justify-items: center; gap: 10px; animation: brandPop 1s cubic-bezier(.2, .9, .3, 1.4) both; }
+.intro-brand .intro-logo { width: min(72vw, 380px, 70dvh); }
+.intro-brand .intro-lead { font-size: clamp(22px, 7vw, 36px); }
+.intro-logo { display: block; justify-self: center; width: clamp(120px, 42vw, 200px); height: auto; margin: 0 auto 6px; }
+.intro-promise .intro-logo { margin-bottom: 10px; }
 @keyframes brandPop { from { transform: scale(.4); opacity: 0; } }
 
 /* 5–6: promise + ready */
@@ -82,6 +81,8 @@
   .intro-ready h1, .intro-hot { font-size: min(10vw, 11dvh); }
   .intro-lead { font-size: min(4.5vw, 5.5dvh); }
   .intro-ready .btn-primary { margin-top: 10px; padding: 10px; font-size: min(28px, 8dvh); }
+  .intro-logo { width: min(30vw, 20dvh); margin-bottom: 0; }
+  .intro-promise { font-size: min(9vw, 11dvh); }
 }
 
 /* ---------- mystery box ---------- */

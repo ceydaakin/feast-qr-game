@@ -96,7 +96,7 @@ test('every reward-flow string exists in Turkish and English for İTÜ', () => {
 test('English reward copy is not silently the Turkish text', () => {
   const tr = makeT('tr', pickTheme('itu').strings);
   const en = makeT('en', pickTheme('itu').strings);
-  REWARD_KEYS.filter((k) => k !== 'introBrand').forEach((key) => {
+  REWARD_KEYS.forEach((key) => {
     assert.notDeepEqual(en(key), tr(key), `en.${key} falls back to Turkish`);
   });
 });
@@ -124,4 +124,23 @@ test('reward copy makes no factual claim about the viewer\'s friends', () => {
     const text = makeT(locale, pickTheme('itu').strings)('rewardFriends');
     assert.doesNotMatch(text, /zaten|already/i, `${locale}: "${text}"`);
   });
+});
+
+// Brief: feast leads the intro; İTÜ students are addressed ("İTÜ'lülere özel"),
+// not imitated ("İTÜ'lü gibi").
+test('intro copy speaks to ITU students instead of "İTÜ\'lü gibi"', () => {
+  const tr = makeT('tr', pickTheme('itu').strings);
+  const en = makeT('en', pickTheme('itu').strings);
+  assert.match(tr('introLead'), /İTÜ'lülere/);
+  assert.match(en('introLead'), /ITU students/);
+  ['tr', 'en'].forEach((locale) => {
+    const t = makeT(locale, pickTheme('itu').strings);
+    REWARD_KEYS.filter((k) => k.startsWith('intro') || k.startsWith('ready')).forEach((key) => {
+      assert.doesNotMatch(String(t(key)), /gibi|like an/i, `${locale}.${key}: "${t(key)}"`);
+    });
+  });
+});
+
+test('the big intro word is no longer İTÜ — feast\'s logo takes that frame', () => {
+  assert.ok(!REWARD_KEYS.includes('introBrand'));
 });
