@@ -1,7 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pickFlow, INTRO_STEPS, introPlan, createSequencer, createBoxState } from '../js/flow.js';
+import {
+  pickFlow, INTRO_STEPS, introPlan, createSequencer, createBoxState, REWARD_KEYS,
+} from '../js/flow.js';
 import { pickTheme } from '../js/themes.js';
+import { makeT } from '../js/i18n.js';
 
 // Manual clock: schedule() queues callbacks, tick() runs the next one.
 function fakeClock() {
@@ -75,4 +78,24 @@ test('box opens exactly once no matter how often it is tapped', () => {
   assert.equal(box.opened(), false);
   assert.equal(box.tap(), false);
   assert.equal(box.state(), 'open');
+});
+
+test('every reward-flow string exists in Turkish and English for İTÜ', () => {
+  assert.ok(REWARD_KEYS.length > 0);
+  ['tr', 'en'].forEach((locale) => {
+    const t = makeT(locale, pickTheme('itu').strings);
+    REWARD_KEYS.forEach((key) => {
+      const value = t(key);
+      assert.notEqual(value, key, `${locale}.${key} missing`);
+      assert.ok(Array.isArray(value) ? value.length : String(value).trim(), `${locale}.${key} empty`);
+    });
+  });
+});
+
+test('English reward copy is not silently the Turkish text', () => {
+  const tr = makeT('tr', pickTheme('itu').strings);
+  const en = makeT('en', pickTheme('itu').strings);
+  REWARD_KEYS.filter((k) => k !== 'introBrand').forEach((key) => {
+    assert.notDeepEqual(en(key), tr(key), `en.${key} falls back to Turkish`);
+  });
 });

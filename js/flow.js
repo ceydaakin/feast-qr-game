@@ -11,7 +11,12 @@ export const INTRO_STEPS = Object.freeze([
   { id: 'ready', ms: 0 }, // terminal: waits for the BAŞLA click
 ]);
 
-export const REWARD_KEYS = Object.freeze([]); // filled in Task 2
+export const REWARD_KEYS = Object.freeze([
+  'introBrand', 'introLead', 'introPromise', 'introHot', 'introTail',
+  'readyMain', 'readyHot', 'readyPlay',
+  'boxTitle', 'boxHint', 'boxOpen',
+  'rewardTitle', 'rewardCollect', 'rewardFriends', 'rewardChatTitle', 'rewardChatNote', 'rewardChat', 'rewardScore',
+]);
 
 export function pickFlow(theme) {
   return theme?.flow === 'reward' ? 'reward' : 'classic';
