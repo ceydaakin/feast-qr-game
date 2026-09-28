@@ -55,6 +55,10 @@ function applyStrings() {
     const hasSpecific = 'i18nPlatform' in el.dataset && t(specific) !== specific;
     el.textContent = t(hasSpecific ? specific : key);
   });
+  // The round badge stays on one line; CSS shrinks its font by text length
+  // (themes like İTÜ have much longer copy). +2 accounts for the ⏱ icon.
+  const badge = $('.round-badge');
+  badge?.style.setProperty('--badge-len', String(t('roundBadge').length + 2));
   document.title = `${t('title')} · feast.`;
   document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
     el.setAttribute('aria-label', t(el.dataset.i18nAria));

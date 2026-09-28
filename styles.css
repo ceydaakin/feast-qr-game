@@ -95,10 +95,22 @@ h2 { font-size: 30px; color: var(--red); }
   border-radius: 999px;
   background: var(--ink);
   color: #fff;
-  font-size: 12.5px;
+  --badge-max: 12.5px;
+  font-size: var(--badge-max);
   font-weight: 900;
   letter-spacing: .03em;
   text-transform: uppercase;
+}
+/* One line at any width: font shrinks with the column width and the badge's
+   text length (--badge-len, set in main.js). Older browsers without container
+   units keep the fixed size and may wrap. */
+@supports (width: 1cqi) {
+  .start-hero { container-type: inline-size; }
+  .round-badge {
+    max-width: 100%;
+    white-space: nowrap;
+    font-size: min(var(--badge-max), calc((100cqi - 24px) / (var(--badge-len, 26) * 0.68)));
+  }
 }
 .sub { margin: 8px 4px 12px; font-size: 15px; line-height: 1.35; font-weight: 600; opacity: .85; }
 
@@ -424,7 +436,7 @@ h2 { font-size: 30px; color: var(--red); }
   #start { padding-left: 10px; padding-right: 10px; }
   .start-card { padding: 12px 12px 10px; }
   .start-card .hero-chef { height: 14dvh; }
-  .start-card .round-badge { margin: 2px 0 4px; padding: 3px 8px; font-size: 10.5px; letter-spacing: .01em; }
+  .start-card .round-badge { --badge-max: 10.5px; margin: 2px 0 4px; padding: 3px 8px; letter-spacing: .01em; }
   .start-card h1 { font-size: 21px; }
   .start-card .sub { margin: 4px 0 6px; font-size: 12.5px; line-height: 1.3; }
   .start-card .legend-group { padding: 4px 4px 2px; font-size: 11px; }
@@ -479,7 +491,7 @@ h2 { font-size: 30px; color: var(--red); }
   .start-card .best { margin-top: 2px; }
   .start-card .ticker { margin-top: 0; }
   .start-card .link-app { margin-top: 0; font-size: 13px; }
-  .start-hero .round-badge { padding: 4px 10px; font-size: 11px; white-space: nowrap; }
+  .start-hero .round-badge { --badge-max: 11px; padding: 4px 10px; }
 }
 
 @media (orientation: landscape) and (max-height: 360px) {

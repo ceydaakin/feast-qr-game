@@ -18,7 +18,7 @@ export const THEMES = Object.freeze({
     strings: {
       tr: {
         headline: '45 saniye oyna, yeni döneme İTÜ usulü başla!',
-        roundBadge: 'Yeni döneme özel 45 saniyelik lezzet turu',
+        roundBadge: 'Yeni döneme özel lezzet turu',
         subtitle: 'Okul başladı, kampüs aç! İTÜ Stadyumu\'nda şef ordunu büyüt, MED çimlerinden gölet kenarına herkesi doyur — gerçek lezzetler oyunun sonunda.',
         over_time: 'Tebrikler, İTÜ\'yü doyurdun! 🎉',
         ranks: ['Hazırlıkçı 📘', 'Birinci Sınıf', 'Kıdemli', 'Kampüs Efsanesi 🏆'],
@@ -43,7 +43,7 @@ export const THEMES = Object.freeze({
       },
       en: {
         headline: 'Play 45 seconds, start the new term the ITU way!',
-        roundBadge: 'A 45-second taste tour for the new term',
+        roundBadge: 'New-term taste tour',
         subtitle: 'School\'s back and campus is hungry! Grow your chef army in the ITU Stadium and feed everyone from the MED lawns to the pond.',
         over_time: 'Well done, you fed ITU! 🎉',
         ranks: ['Prep Student 📘', 'Freshman', 'Senior', 'Campus Legend 🏆'],
