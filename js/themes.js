@@ -33,7 +33,7 @@ export const THEMES = Object.freeze({
         boxOpen: 'Ödül kutusunu aç',
         rewardTitle: 'İTÜ\'de, Kadıköy\'de, Beşiktaş\'ta tüm restoranları, tüm menü ve fiyatları ve tüm arkadaşlarını görmeye hak kazandın!',
         rewardCollect: 'TOPLA',
-        rewardFriends: 'Arkadaşların zaten feast\'te',
+        rewardFriends: 'Arkadaşlarınla feast\'te buluş',
         rewardChatTitle: 'Bu akşam nerede yiyoruz?',
         rewardChatNote: 'Örnek sohbet',
         rewardChat: [
@@ -79,7 +79,7 @@ export const THEMES = Object.freeze({
         boxOpen: 'Open the reward box',
         rewardTitle: 'You\'ve unlocked every restaurant in ITU, Kadıköy and Beşiktaş, every menu and price, and all your friends!',
         rewardCollect: 'COLLECT',
-        rewardFriends: 'Your friends are already on feast',
+        rewardFriends: 'Meet your friends on feast',
         rewardChatTitle: 'Where are we eating tonight?',
         rewardChatNote: 'Example chat',
         rewardChat: [

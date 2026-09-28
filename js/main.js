@@ -313,7 +313,16 @@ function preventPageGestures() {
   });
 }
 
+// BAŞLA is visible during the intro, before boot() has loaded the game's
+// images: a tap then is remembered and starts the round once the game exists.
+const rewardStart = { play: null, queued: false };
+
 function startRewardIntro() {
+  $('#btn-reward-play').addEventListener('click', () => {
+    sfx.unlock(); // inside the tap, so audio is allowed later
+    if (rewardStart.play) rewardStart.play();
+    else rewardStart.queued = true;
+  });
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const seen = storage('get', INTRO_SEEN_KEY) === '1';
   showScreen('intro');
@@ -381,7 +390,10 @@ async function boot() {
     game.start();
   };
   $('#btn-play').addEventListener('click', play);
-  if (flow === 'reward') $('#btn-reward-play').addEventListener('click', play);
+  if (flow === 'reward') {
+    rewardStart.play = play;
+    if (rewardStart.queued) play();
+  }
   document.querySelectorAll('[data-action="again"]').forEach((b) => b.addEventListener('click', play));
   const canShare = Boolean(navigator.share || navigator.clipboard);
   document.querySelectorAll('[data-action="share"]').forEach((b) => {

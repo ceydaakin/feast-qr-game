@@ -116,3 +116,12 @@ test('reward chat preview has short example lines in both languages', () => {
     chat.forEach((line) => assert.ok(line.from && line.text.length <= 70, `${locale}: "${line.text}" too long`));
   });
 });
+
+// The page cannot know who the visitor's friends are, so the reward copy must
+// not state as fact that they are already on feast (fabricated social proof).
+test('reward copy makes no factual claim about the viewer\'s friends', () => {
+  ['tr', 'en'].forEach((locale) => {
+    const text = makeT(locale, pickTheme('itu').strings)('rewardFriends');
+    assert.doesNotMatch(text, /zaten|already/i, `${locale}: "${text}"`);
+  });
+});

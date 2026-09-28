@@ -55,7 +55,7 @@ html, body {
    frame; only the visible screen keeps it, and hidden screens stop ticking
    their infinite animations. */
 .screen:not(.is-active) { -webkit-backdrop-filter: none; backdrop-filter: none; }
-.screen:not(.is-active) :is(.btn-pulse, .hero-chef, .chef-sticker, .btn-store, .best.is-new) { animation-play-state: paused; }
+.screen:not(.is-active) :is(.btn-pulse, .hero-chef, .chef-sticker, .btn-store, .best.is-new, .sparkle, .mystery-box, .intro-q) { animation-play-state: paused; }
 #play { display: none; }
 .scrollable { overflow-y: auto; -webkit-overflow-scrolling: touch; align-items: safe center; }
 
