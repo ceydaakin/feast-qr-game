@@ -5,6 +5,7 @@ import {
 } from '../js/flow.js';
 import { pickTheme } from '../js/themes.js';
 import { makeT } from '../js/i18n.js';
+import { AVATARS } from '../js/reward-content.js';
 
 // Manual clock: schedule() queues callbacks, tick() runs the next one.
 function fakeClock() {
@@ -97,5 +98,21 @@ test('English reward copy is not silently the Turkish text', () => {
   const en = makeT('en', pickTheme('itu').strings);
   REWARD_KEYS.filter((k) => k !== 'introBrand').forEach((key) => {
     assert.notDeepEqual(en(key), tr(key), `en.${key} falls back to Turkish`);
+  });
+});
+
+test('reward avatars are placeholders with a background and an emoji', () => {
+  assert.ok(AVATARS.length >= 4 && AVATARS.length <= 8);
+  AVATARS.forEach((a) => {
+    assert.match(a.bg, /^#[0-9a-f]{6}$/i);
+    assert.ok(a.emoji.length > 0);
+  });
+});
+
+test('reward chat preview has short example lines in both languages', () => {
+  ['tr', 'en'].forEach((locale) => {
+    const chat = makeT(locale, pickTheme('itu').strings)('rewardChat');
+    assert.ok(chat.length >= 2 && chat.length <= 4);
+    chat.forEach((line) => assert.ok(line.from && line.text.length <= 70, `${locale}: "${line.text}" too long`));
   });
 });

@@ -1,6 +1,7 @@
 // DOM side of the reward flow (logic in flow.js).
 
 import { createSequencer, createBoxState } from './flow.js';
+import { AVATARS } from './reward-content.js';
 
 const BOX_OPEN_MS = 1100; // shake (0.6 s) + lid/burst (0.5 s), matches reward.css
 
@@ -35,4 +36,21 @@ export function openBoxScreen({ root, button, onOpened, openMs = BOX_OPEN_MS }) 
       onOpened();
     }, openMs);
   };
+}
+
+export function renderReward({ avatarsEl, chatEl, scoreEl, chat, scoreText }) {
+  avatarsEl.replaceChildren(...AVATARS.map((a) => {
+    const el = document.createElement('span');
+    el.style.background = a.bg;
+    el.textContent = a.emoji;
+    return el;
+  }));
+  chatEl.replaceChildren(...chat.map((line) => {
+    const li = document.createElement('li');
+    const who = document.createElement('b');
+    who.textContent = line.from;
+    li.append(who, line.text);
+    return li;
+  }));
+  scoreEl.textContent = scoreText;
 }

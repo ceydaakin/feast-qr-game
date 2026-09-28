@@ -108,6 +108,40 @@
     </div>
   </section>
 
+  <!-- REWARD FLOW: unlocked reward -->
+  <section id="reward" class="screen scrollable">
+    <div class="card reward-card">
+      <div class="chef-sticker"><img src="assets/chef-head.webp" alt="" width="44" height="44"><span data-i18n="chefPick"></span></div>
+      <img class="logo" src="assets/logo.webp" alt="feast." width="120" height="33">
+      <h2 class="reward-title" data-i18n="rewardTitle"></h2>
+
+      <div class="reward-friends">
+        <div id="reward-avatars" class="avatar-stack" aria-hidden="true"></div>
+        <span data-i18n="rewardFriends"></span>
+      </div>
+
+      <div class="reward-chat">
+        <div class="reward-chat-head"><b data-i18n="rewardChatTitle"></b><small data-i18n="rewardChatNote"></small></div>
+        <ul id="reward-chat" class="chat-lines"></ul>
+      </div>
+
+      <a class="btn btn-primary btn-pulse reward-collect" data-store="reward" href="#" target="_top" rel="noopener" data-i18n="rewardCollect"></a>
+      <div class="app-qr" data-desktop-only>
+        <img src="assets/store-qr.svg" loading="lazy" alt="feast. uygulamasını indirme QR kodu" data-i18n-alt="altStoreQr" width="132" height="132">
+        <div class="app-qr-text">
+          <b data-i18n="qrTitle"></b>
+          <small data-i18n="qrHint" data-i18n-platform></small>
+        </div>
+      </div>
+
+      <p id="reward-score" class="stats"></p>
+      <div class="row">
+        <button class="btn btn-ghost" type="button" data-action="again" data-i18n="again"></button>
+        <button class="btn btn-ghost" type="button" data-action="share" data-i18n="share"></button>
+      </div>
+    </div>
+  </section>
+
   <!-- PLAY (canvas + HUD only) -->
   <section id="play" class="screen" aria-hidden="true"></section>
 
@@ -156,8 +190,8 @@
       </div>
 
       <div class="row">
-        <button id="btn-again" class="btn btn-ghost" type="button" data-i18n="again"></button>
-        <button id="btn-share" class="btn btn-ghost" type="button" data-i18n="share"></button>
+        <button id="btn-again" class="btn btn-ghost" type="button" data-action="again" data-i18n="again"></button>
+        <button id="btn-share" class="btn btn-ghost" type="button" data-action="share" data-i18n="share"></button>
       </div>
     </div>
   </section>

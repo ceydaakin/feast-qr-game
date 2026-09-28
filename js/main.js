@@ -9,7 +9,7 @@ import { sfx } from './audio.js';
 import { createGame } from './game.js';
 import { buildLegendIcons } from './crowd-art.js';
 import { pickFlow, introPlan } from './flow.js';
-import { playIntro, openBoxScreen } from './reward-ui.js';
+import { playIntro, openBoxScreen, renderReward } from './reward-ui.js';
 
 const BEST_KEY = 'feast-game.best.v1';
 const MUTE_KEY = 'feast-game.muted.v1';
@@ -176,6 +176,7 @@ function setupStoreLinks() {
     }
   });
   document.querySelectorAll('[data-store-only]').forEach((el) => { el.hidden = !STORE_URL; });
+  document.querySelectorAll('[data-desktop-only]').forEach((el) => { el.hidden = Boolean(STORE_URL); });
 }
 
 function showScreen(id) {
@@ -246,13 +247,26 @@ function showBox(result) {
     button: $('#btn-box'),
     onOpened: () => {
       track('box_open', { score: result.score });
-      showGameOver(result, Number(storage('get', BEST_KEY)) || 0, false);
+      showReward(result);
     },
   });
   showScreen('box');
 }
 
-async function share(score) {
+function showReward(result) {
+  renderReward({
+    avatarsEl: $('#reward-avatars'),
+    chatEl: $('#reward-chat'),
+    scoreEl: $('#reward-score'),
+    chat: t('rewardChat'),
+    scoreText: t('rewardScore', { score: result.score }),
+  });
+  $('#reward').scrollTo(0, 0);
+  showScreen('reward');
+  track('reward_view', { score: result.score });
+}
+
+async function share(score, btn) {
   // Keep the event theme on shared links so friends get the same version.
   const url = `${location.origin}${location.pathname}${theme ? `?src=${theme.id}` : ''}`;
   const text = t('shareText', { score });
@@ -263,7 +277,6 @@ async function share(score) {
       return;
     }
     await navigator.clipboard.writeText(`${text} ${url}`);
-    const btn = $('#btn-share');
     const label = btn.textContent;
     btn.textContent = t('copied');
     setTimeout(() => { btn.textContent = label; }, 1600);
@@ -369,9 +382,12 @@ async function boot() {
   };
   $('#btn-play').addEventListener('click', play);
   if (flow === 'reward') $('#btn-reward-play').addEventListener('click', play);
-  $('#btn-again').addEventListener('click', play);
-  $('#btn-share').hidden = !(navigator.share || navigator.clipboard);
-  $('#btn-share').addEventListener('click', () => share(lastScore));
+  document.querySelectorAll('[data-action="again"]').forEach((b) => b.addEventListener('click', play));
+  const canShare = Boolean(navigator.share || navigator.clipboard);
+  document.querySelectorAll('[data-action="share"]').forEach((b) => {
+    b.hidden = !canShare;
+    b.addEventListener('click', () => share(lastScore, b));
+  });
 
   document.body.classList.add('is-ready');
   track('view', { platform });
