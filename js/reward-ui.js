@@ -75,7 +75,7 @@ function placeCard(place) {
   return card;
 }
 
-export function renderReward({ avatarsEl, placesEl, chatEl, scoreEl, chat, scoreText }) {
+export function renderReward({ avatarsEl, placesEl, scoreEl, scoreText }) {
   avatarsEl.replaceChildren(...REWARD_CONFIG.avatars.map((a) => {
     const el = document.createElement('span');
     el.style.background = a.bg;
@@ -83,12 +83,5 @@ export function renderReward({ avatarsEl, placesEl, chatEl, scoreEl, chat, score
     return el;
   }));
   placesEl.replaceChildren(...REWARD_CONFIG.restaurants.map(placeCard));
-  chatEl.replaceChildren(...chat.map((line) => {
-    const li = document.createElement('li');
-    const who = document.createElement('b');
-    who.textContent = line.from;
-    li.append(who, line.text);
-    return li;
-  }));
   scoreEl.textContent = scoreText;
 }

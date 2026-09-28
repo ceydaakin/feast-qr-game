@@ -19,7 +19,7 @@ export const REWARD_KEYS = Object.freeze([
   'introLead', 'introPromise', 'introHot', 'introTail',
   'readyMain', 'readyHot', 'readyPlay',
   'boxTitle', 'boxHint', 'boxOpen',
-  'rewardTitle', 'rewardPlaces', 'rewardCollect', 'rewardFriends', 'rewardChatTitle', 'rewardChatNote', 'rewardChatLock', 'rewardChat', 'rewardScore',
+  'rewardTitle', 'rewardCollect', 'rewardFriends', 'rewardScore',
 ]);
 
 export function pickFlow(theme) {

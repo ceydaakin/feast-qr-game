@@ -270,9 +270,7 @@ function showReward(result) {
   renderReward({
     avatarsEl: $('#reward-avatars'),
     placesEl: $('#reward-places'),
-    chatEl: $('#reward-chat'),
     scoreEl: $('#reward-score'),
-    chat: t('rewardChat'),
     scoreText: t('rewardScore', { score: result.score }),
   });
   $('#reward').scrollTo(0, 0);
