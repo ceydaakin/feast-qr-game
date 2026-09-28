@@ -110,9 +110,11 @@
         <span class="box-lid" aria-hidden="true">?</span>
         <span class="box-body" aria-hidden="true">?</span>
         <span class="box-burst" aria-hidden="true"></span>
+        <span class="box-sparks" aria-hidden="true"></span>
       </button>
       <p class="hint" data-i18n="boxHint"></p>
     </div>
+    <div class="box-flash" aria-hidden="true"></div>
   </section>
 
   <!-- REWARD FLOW: unlocked reward -->
@@ -124,6 +126,10 @@
           <img class="logo" src="assets/logo.webp" alt="feast." width="120" height="33">
         </div>
         <h2 class="reward-title" data-i18n="rewardTitle"></h2>
+        <div class="reward-places">
+          <ul id="reward-places" class="place-cards"></ul>
+          <span data-i18n="rewardPlaces"></span>
+        </div>
         <div class="reward-friends">
           <div id="reward-avatars" class="avatar-stack" aria-hidden="true"></div>
           <span data-i18n="rewardFriends"></span>
@@ -140,7 +146,10 @@
       <div class="reward-side">
         <div class="reward-chat">
           <div class="reward-chat-head"><b data-i18n="rewardChatTitle"></b><small data-i18n="rewardChatNote"></small></div>
-          <ul id="reward-chat" class="chat-lines"></ul>
+          <div class="chat-body">
+            <ul id="reward-chat" class="chat-lines" aria-hidden="true"></ul>
+            <p class="reward-chat-lock" data-i18n="rewardChatLock"></p>
+          </div>
         </div>
         <p id="reward-score" class="stats"></p>
         <div class="row">

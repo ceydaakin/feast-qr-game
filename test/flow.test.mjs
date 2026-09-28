@@ -5,7 +5,14 @@ import {
 } from '../js/flow.js';
 import { pickTheme } from '../js/themes.js';
 import { makeT } from '../js/i18n.js';
-import { AVATARS } from '../js/reward-content.js';
+import { REWARD_CONFIG } from '../js/reward-config.js';
+import {
+  pickCampus, turkishPluralDative, turkishLocative, themeStringsWithReward,
+} from '../js/campus.js';
+
+const { avatars: AVATARS } = REWARD_CONFIG;
+// t() exactly as main.js builds it for ?src=itu (optionally with &campus=…).
+const rewardT = (locale, campus = null) => makeT(locale, themeStringsWithReward(pickTheme('itu'), campus));
 
 // Manual clock: schedule() queues callbacks, tick() runs the next one.
 function fakeClock() {
@@ -84,7 +91,7 @@ test('box opens exactly once no matter how often it is tapped', () => {
 test('every reward-flow string exists in Turkish and English for İTÜ', () => {
   assert.ok(REWARD_KEYS.length > 0);
   ['tr', 'en'].forEach((locale) => {
-    const t = makeT(locale, pickTheme('itu').strings);
+    const t = rewardT(locale);
     REWARD_KEYS.forEach((key) => {
       const value = t(key);
       assert.notEqual(value, key, `${locale}.${key} missing`);
@@ -94,8 +101,8 @@ test('every reward-flow string exists in Turkish and English for İTÜ', () => {
 });
 
 test('English reward copy is not silently the Turkish text', () => {
-  const tr = makeT('tr', pickTheme('itu').strings);
-  const en = makeT('en', pickTheme('itu').strings);
+  const tr = rewardT('tr');
+  const en = rewardT('en');
   REWARD_KEYS.forEach((key) => {
     assert.notDeepEqual(en(key), tr(key), `en.${key} falls back to Turkish`);
   });
@@ -111,7 +118,7 @@ test('reward avatars are placeholders with a background and an emoji', () => {
 
 test('reward chat preview has short example lines in both languages', () => {
   ['tr', 'en'].forEach((locale) => {
-    const chat = makeT(locale, pickTheme('itu').strings)('rewardChat');
+    const chat = rewardT(locale)('rewardChat');
     assert.ok(chat.length >= 2 && chat.length <= 4);
     chat.forEach((line) => assert.ok(line.from && line.text.length <= 70, `${locale}: "${line.text}" too long`));
   });
@@ -121,7 +128,7 @@ test('reward chat preview has short example lines in both languages', () => {
 // not state as fact that they are already on feast (fabricated social proof).
 test('reward copy makes no factual claim about the viewer\'s friends', () => {
   ['tr', 'en'].forEach((locale) => {
-    const text = makeT(locale, pickTheme('itu').strings)('rewardFriends');
+    const text = rewardT(locale)('rewardFriends');
     assert.doesNotMatch(text, /zaten|already/i, `${locale}: "${text}"`);
   });
 });
@@ -129,12 +136,12 @@ test('reward copy makes no factual claim about the viewer\'s friends', () => {
 // Brief: feast leads the intro; İTÜ students are addressed ("İTÜ'lülere özel"),
 // not imitated ("İTÜ'lü gibi").
 test('intro copy speaks to ITU students instead of "İTÜ\'lü gibi"', () => {
-  const tr = makeT('tr', pickTheme('itu').strings);
-  const en = makeT('en', pickTheme('itu').strings);
+  const tr = rewardT('tr');
+  const en = rewardT('en');
   assert.match(tr('introLead'), /İTÜ'lülere/);
   assert.match(en('introLead'), /ITU students/);
   ['tr', 'en'].forEach((locale) => {
-    const t = makeT(locale, pickTheme('itu').strings);
+    const t = rewardT(locale);
     REWARD_KEYS.filter((k) => k.startsWith('intro') || k.startsWith('ready')).forEach((key) => {
       assert.doesNotMatch(String(t(key)), /gibi|like an/i, `${locale}.${key}: "${t(key)}"`);
     });
@@ -143,4 +150,66 @@ test('intro copy speaks to ITU students instead of "İTÜ\'lü gibi"', () => {
 
 test('the big intro word is no longer İTÜ — feast\'s logo takes that frame', () => {
   assert.ok(!REWARD_KEYS.includes('introBrand'));
+});
+
+// ---------- single config (the brief: every duration and text in one file) ----------
+
+test('intro durations come from the config, in the brief\'s order', () => {
+  const { timings } = REWARD_CONFIG;
+  assert.deepEqual(INTRO_STEPS.slice(0, -1).map((s) => s.ms), [
+    timings.mystery, timings.swirl, timings.scribble, timings.brand, timings.promise,
+  ]);
+  assert.deepEqual(timings, { mystery: 2000, swirl: 1500, scribble: 800, brand: 1500, promise: 2500 });
+});
+
+test('losing the round is a config choice: give the box anyway or retry', () => {
+  assert.ok(['box', 'retry'].includes(REWARD_CONFIG.onLose));
+});
+
+test('restaurant cards have a name and either an image or a monogram', () => {
+  const { restaurants } = REWARD_CONFIG;
+  assert.ok(restaurants.length >= 3 && restaurants.length <= 5);
+  assert.equal(restaurants[0].name, 'Mustachio');
+  restaurants.forEach((r) => assert.ok(r.name && (r.img || r.monogram), JSON.stringify(r)));
+});
+
+// ---------- campus from ?campus= ----------
+
+test('pickCampus keeps a clean campus name and rejects junk', () => {
+  assert.equal(pickCampus(null), null);
+  assert.equal(pickCampus(''), null);
+  assert.equal(pickCampus('  ODTÜ '), 'ODTÜ');
+  assert.equal(pickCampus('Boğaziçi'), 'Boğaziçi');
+  assert.equal(pickCampus('<script>'), null);
+  assert.equal(pickCampus('x'.repeat(40)), null);
+});
+
+test('Turkish suffixes follow vowel harmony and consonant hardening', () => {
+  assert.equal(turkishPluralDative('İTÜ'), 'İTÜ\'lülere');
+  assert.equal(turkishPluralDative('ODTÜ'), 'ODTÜ\'lülere');
+  assert.equal(turkishPluralDative('Boğaziçi'), 'Boğaziçi\'lilere');
+  assert.equal(turkishPluralDative('Yıldız'), 'Yıldız\'lılara');
+  assert.equal(turkishPluralDative('Koç'), 'Koç\'lulara');
+  assert.equal(turkishLocative('İTÜ'), 'İTÜ\'de');
+  assert.equal(turkishLocative('Yıldız'), 'Yıldız\'da');
+  assert.equal(turkishLocative('Koç'), 'Koç\'ta');
+  assert.equal(turkishLocative('Sabancı'), 'Sabancı\'da');
+});
+
+test('campus fills the reward copy; İTÜ/ITU by default', () => {
+  assert.equal(rewardT('tr')('introLead'), 'İTÜ\'lülere özel');
+  assert.equal(rewardT('en')('introLead'), 'For ITU students');
+  assert.equal(rewardT('tr', 'ODTÜ')('introLead'), 'ODTÜ\'lülere özel');
+  assert.equal(rewardT('en', 'ODTÜ')('introLead'), 'For ODTÜ students');
+  assert.match(rewardT('tr', 'ODTÜ')('rewardTitle'), /^ODTÜ'de, Kadıköy'de, Beşiktaş'ta/);
+  assert.match(rewardT('en', 'ODTÜ')('rewardTitle'), /in ODTÜ, Kadıköy and Beşiktaş/);
+});
+
+test('promise frame reads "Yeni döneme ÖDÜLLE başla"', () => {
+  const t = rewardT('tr');
+  assert.equal(`${t('introPromise')} ${t('introHot')} ${t('introTail')}`, 'Yeni döneme ÖDÜLLE başla');
+});
+
+test('English ready copy says "survive", matching "45 sn dayan"', () => {
+  assert.match(rewardT('en')('readyMain'), /survive/i);
 });

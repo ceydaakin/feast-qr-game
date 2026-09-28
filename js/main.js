@@ -9,6 +9,8 @@ import { sfx } from './audio.js';
 import { createGame } from './game.js';
 import { buildLegendIcons } from './crowd-art.js';
 import { pickFlow, introPlan } from './flow.js';
+import { REWARD_CONFIG } from './reward-config.js';
+import { themeStringsWithReward } from './campus.js';
 import { playIntro, openBoxScreen, renderReward } from './reward-ui.js';
 
 const BEST_KEY = 'feast-game.best.v1';
@@ -32,8 +34,9 @@ if (params.get('dl') === '1' && STORE_URL) {
 
 const locale = pickLocale(params.get('lang'));
 const theme = pickTheme(source);
-const t = makeT(locale, theme?.strings);
 const flow = pickFlow(theme);
+// Reward flow copy comes from reward-config.js with ?campus= filled in (default İTÜ).
+const t = makeT(locale, flow === 'reward' ? themeStringsWithReward(theme, params.get('campus')) : theme?.strings);
 document.documentElement.lang = locale;
 
 function track(event, data = {}) {
@@ -241,6 +244,16 @@ function showGameOver(result, best, isNewBest) {
   showScreen('over');
 }
 
+// Lost before time ran out: the config decides between the box anyway and a retry.
+function endRewardRound(result) {
+  if (result.reason !== 'time' && REWARD_CONFIG.onLose === 'retry') {
+    track('retry_offered', { score: result.score });
+    showScreen('intro');
+    return;
+  }
+  showBox(result);
+}
+
 function showBox(result) {
   openBoxScreen({
     root: $('#box'),
@@ -256,6 +269,7 @@ function showBox(result) {
 function showReward(result) {
   renderReward({
     avatarsEl: $('#reward-avatars'),
+    placesEl: $('#reward-places'),
     chatEl: $('#reward-chat'),
     scoreEl: $('#reward-score'),
     chat: t('rewardChat'),
@@ -371,7 +385,7 @@ async function boot() {
         storage('set', BEST_KEY, String(best));
       }
       track('end', { score: result.score, reason: result.reason });
-      setTimeout(() => (flow === 'reward' ? showBox(result) : showGameOver(result, best, isNewBest)), 450);
+      setTimeout(() => (flow === 'reward' ? endRewardRound(result) : showGameOver(result, best, isNewBest)), 450);
     },
   });
 

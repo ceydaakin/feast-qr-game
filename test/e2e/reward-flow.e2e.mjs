@@ -61,10 +61,11 @@ const showOnly = (page, id) => page.evaluate((want) => {
 const forceReward = (page) => page.evaluate(async () => {
   const { renderReward } = await import('/js/reward-ui.js');
   const { makeT } = await import('/js/i18n.js');
-  const { pickTheme } = await import('/js/themes.js');
-  const t = makeT(document.documentElement.lang, pickTheme('itu').strings);
+  const { pickTheme } = await import('/js/themes.js'); const { themeStringsWithReward } = await import('/js/campus.js');
+  const t = makeT(document.documentElement.lang, themeStringsWithReward(pickTheme('itu'), new URLSearchParams(location.search).get('campus')));
   renderReward({
     avatarsEl: document.getElementById('reward-avatars'),
+    placesEl: document.getElementById('reward-places'),
     chatEl: document.getElementById('reward-chat'),
     scoreEl: document.getElementById('reward-score'),
     chat: t('rewardChat'),
@@ -182,6 +183,80 @@ try {
     assert.ok(await page.locator('#reward-chat li').count() >= 2);
     assert.equal(await page.isVisible('[data-store="reward"]'), true, 'TOPLA visible on phones');
     assert.equal(await page.isHidden('#reward [data-desktop-only]'), true, 'QR hidden on phones');
+    await page.close();
+  });
+
+  await check('?campus= renames the campus in the intro and the reward title', async () => {
+    const page = await open(desktop, '?src=itu&campus=ODTÜ');
+    await page.click('#intro', { position: { x: 5, y: 5 } });
+    assert.match(await page.textContent('[data-frame="ready"] .intro-lead'), /ODTÜ'lülere özel/);
+    await forceReward(page);
+    assert.match(await page.textContent('.reward-title'), /^ODTÜ'de, Kadıköy'de/);
+    await page.close();
+  });
+
+  await check('reward shows restaurant cards (Mustachio first) and a blurred, labelled chat', async () => {
+    const page = await open(mobile);
+    await forceReward(page);
+    const cards = await page.locator('#reward-places .place-card').allTextContents();
+    assert.ok(cards.length >= 3, `only ${cards.length} restaurant cards`);
+    assert.match(cards[0], /Mustachio/);
+    assert.match(await page.evaluate(() => getComputedStyle(document.getElementById('reward-chat')).filter), /blur/);
+    assert.ok(await page.isVisible('.reward-chat-lock'), 'no lock over the blurred chat');
+    assert.ok(await page.isVisible('.reward-chat-head small'), '"example chat" label hidden');
+    await page.close();
+  });
+
+  await check('box opening: shake builds up, then flash and particles', async () => {
+    const page = await open(mobile);
+    await showOnly(page, 'box');
+    await page.evaluate(async () => {
+      const { openBoxScreen } = await import('/js/reward-ui.js');
+      openBoxScreen({ root: document.getElementById('box'), button: document.getElementById('btn-box'), onOpened: () => {} });
+    });
+    await page.click('#btn-box', { force: true });
+    await page.waitForTimeout(900);
+    const sparks = await page.evaluate(() => [...document.querySelectorAll('#box .box-spark')]
+      .filter((el) => el.getAnimations().some((a) => a.playState === 'running')).length);
+    assert.ok(sparks >= 8, `${sparks} flying particles`);
+    assert.ok(await page.evaluate(() => document.querySelector('#box .box-flash')?.getAnimations().length > 0), 'no flash');
+    await page.close();
+  });
+
+  await check('?campus= renames the campus in the intro and the reward title', async () => {
+    const page = await open(desktop, '?src=itu&campus=ODTÜ');
+    await page.click('#intro', { position: { x: 5, y: 5 } });
+    assert.match(await page.textContent('[data-frame="ready"] .intro-lead'), /ODTÜ'lülere özel/);
+    await forceReward(page);
+    assert.match(await page.textContent('.reward-title'), /^ODTÜ'de, Kadıköy'de/);
+    await page.close();
+  });
+
+  await check('reward shows restaurant cards (Mustachio first) and a blurred, labelled chat', async () => {
+    const page = await open(mobile);
+    await forceReward(page);
+    const cards = await page.locator('#reward-places .place-card').allTextContents();
+    assert.ok(cards.length >= 3, `only ${cards.length} restaurant cards`);
+    assert.match(cards[0], /Mustachio/);
+    assert.match(await page.evaluate(() => getComputedStyle(document.getElementById('reward-chat')).filter), /blur/);
+    assert.ok(await page.isVisible('.reward-chat-lock'), 'no lock over the blurred chat');
+    assert.ok(await page.isVisible('.reward-chat-head small'), '"example chat" label hidden');
+    await page.close();
+  });
+
+  await check('box opening: shake builds up, then flash and particles', async () => {
+    const page = await open(mobile);
+    await showOnly(page, 'box');
+    await page.evaluate(async () => {
+      const { openBoxScreen } = await import('/js/reward-ui.js');
+      openBoxScreen({ root: document.getElementById('box'), button: document.getElementById('btn-box'), onOpened: () => {} });
+    });
+    await page.click('#btn-box', { force: true });
+    await page.waitForTimeout(900);
+    const sparks = await page.evaluate(() => [...document.querySelectorAll('#box .box-spark')]
+      .filter((el) => el.getAnimations().some((a) => a.playState === 'running')).length);
+    assert.ok(sparks >= 8, `${sparks} flying particles`);
+    assert.ok(await page.evaluate(() => document.querySelector('#box .box-flash')?.getAnimations().length > 0), 'no flash');
     await page.close();
   });
 

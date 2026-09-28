@@ -6,7 +6,7 @@ const ITU_BLUE = ['#0b3e7a', '#1f5fae', '#3a7bd5'];
 
 export const THEMES = Object.freeze({
   itu: {
-    flow: 'reward', // Osman's intro → box → reward flow (see js/flow.js)
+    flow: 'reward', // Osman's intro → box → reward flow; its copy lives in js/reward-config.js
     scene: { sky: 'stadium', ground: 'stadium', bees: 6 },
     art: {
       eaterLabel: 'İTÜ',
@@ -20,27 +20,6 @@ export const THEMES = Object.freeze({
       tr: {
         headline: '45 saniye oyna, yeni döneme İTÜ usulü başla!',
         roundBadge: 'Yeni döneme özel lezzet turu',
-        introLead: 'İTÜ\'lülere özel',
-        introPromise: '45 sn\'de döneme',
-        introHot: 'ÖDÜLLE',
-        introTail: 'başla',
-        readyMain: '45 sn dayan',
-        readyHot: 'ÖDÜLÜ AL',
-        readyPlay: 'BAŞLA ▶',
-        boxTitle: 'Ödülün hazır!',
-        boxHint: 'Kutuya dokun, aç 👆',
-        boxOpen: 'Ödül kutusunu aç',
-        rewardTitle: 'İTÜ\'de, Kadıköy\'de, Beşiktaş\'ta tüm restoranları, tüm menü ve fiyatları ve tüm arkadaşlarını görmeye hak kazandın!',
-        rewardCollect: 'TOPLA',
-        rewardFriends: 'Arkadaşlarınla feast\'te buluş',
-        rewardChatTitle: 'Bu akşam nerede yiyoruz?',
-        rewardChatNote: 'Örnek sohbet',
-        rewardChat: [
-          { from: 'Elif', text: 'MED makarnası mı yine? 🍝' },
-          { from: 'Can', text: 'Kadıköy\'de yeni bir burgerci açılmış, menüsü feast\'te' },
-          { from: 'Deniz', text: 'Fiyatlara baktım, öğrenciye uygun 👌' },
-        ],
-        rewardScore: 'Skorun: {score}',
         subtitle: 'Okul başladı, kampüs aç! İTÜ Stadyumu\'nda şef ordunu büyüt, MED çimlerinden gölet kenarına herkesi doyur — gerçek lezzetler oyunun sonunda.',
         over_time: 'Tebrikler, İTÜ\'yü doyurdun! 🎉',
         ranks: ['Hazırlıkçı 📘', 'Birinci Sınıf', 'Kıdemli', 'Kampüs Efsanesi 🏆'],
@@ -66,27 +45,6 @@ export const THEMES = Object.freeze({
       en: {
         headline: 'Play 45 seconds, start the new term the ITU way!',
         roundBadge: 'New-term taste tour',
-        introLead: 'For ITU students',
-        introPromise: 'start the term',
-        introHot: 'WITH A REWARD',
-        introTail: 'in 45 seconds',
-        readyMain: 'Last 45 seconds',
-        readyHot: 'CLAIM THE REWARD',
-        readyPlay: 'START ▶',
-        boxTitle: 'Your reward is ready!',
-        boxHint: 'Tap the box to open 👆',
-        boxOpen: 'Open the reward box',
-        rewardTitle: 'You\'ve unlocked every restaurant in ITU, Kadıköy and Beşiktaş, every menu and price, and all your friends!',
-        rewardCollect: 'COLLECT',
-        rewardFriends: 'Meet your friends on feast',
-        rewardChatTitle: 'Where are we eating tonight?',
-        rewardChatNote: 'Example chat',
-        rewardChat: [
-          { from: 'Elif', text: 'MED pasta again? 🍝' },
-          { from: 'Can', text: 'A new burger place opened in Kadıköy, the menu is on feast' },
-          { from: 'Deniz', text: 'Checked the prices, student-friendly 👌' },
-        ],
-        rewardScore: 'Your score: {score}',
         subtitle: 'School\'s back and campus is hungry! Grow your chef army in the ITU Stadium and feed everyone from the MED lawns to the pond.',
         over_time: 'Well done, you fed ITU! 🎉',
         ranks: ['Prep Student 📘', 'Freshman', 'Senior', 'Campus Legend 🏆'],
