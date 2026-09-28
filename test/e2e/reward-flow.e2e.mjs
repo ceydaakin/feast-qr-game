@@ -6,8 +6,13 @@ import assert from 'node:assert/strict';
 
 const BASE = process.env.E2E_URL || 'http://localhost:5174/';
 const IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148';
-const SIZES = [[320, 568], [375, 667], [390, 844], [1280, 720], [568, 320], [640, 300], [667, 375], [844, 390]];
+// Phone-first: the game is a feast ad opened from a QR code on phones.
+const SIZES = [
+  [320, 568], [360, 640], [375, 667], [360, 740], [390, 844], [412, 915], [430, 932],
+  [568, 320], [640, 300], [667, 375], [844, 390], [932, 430], [1280, 720],
+];
 const LOCALES = ['tr', 'en'];
+const IMAGE_DELAY_MS = 5_000; // long enough that BAŞLA is surely tapped before images arrive
 
 const browser = await chromium.launch({ channel: 'chrome' });
 const failures = [];
@@ -22,28 +27,67 @@ async function check(name, fn) {
     console.log(`ok    ${name}`);
   } catch (err) {
     failures.push(name);
-    console.log(`FAIL  ${name}\n      ${String(err.message).split('\n')[0]}`);
+    const detail = String(err.message).split('\n').filter((l) => l.trim()).slice(0, 6).join('\n      ');
+    console.log(`FAIL  ${name}\n      ${detail}`);
   }
 }
 
-// `npm run serve` (python http.server) sometimes resets a module request under
-// load, so a page that never becomes ready gets a few reloads before failing.
+// `npm run serve` (python http.server) sometimes resets a request under load
+// (a JS module, a stylesheet…), which leaves the page half-loaded. Such a load
+// is retried instead of being judged; the dropped URLs are logged.
 async function open(context, query = '?src=itu', attempts = 4) {
   const page = await context.newPage();
+  let dropped = [];
+  page.on('requestfailed', (req) => dropped.push(req.url().replace(BASE, '')));
   for (let i = 1; ; i++) {
+    dropped = [];
     await page.goto(BASE + query);
     try {
       await page.waitForFunction(() => document.body.classList.contains('is-ready'), null, { timeout: 5_000 });
-      return page;
+      if (!dropped.length) return page;
+      throw new Error(`dev server dropped: ${dropped.join(', ')}`);
     } catch (err) {
+      console.log(`      (reload ${i}: ${String(err.message).split('\n')[0]})`);
       if (i >= attempts) throw err;
     }
   }
 }
 
-// Test-only: jump straight to the reward screen (skips a 45 s round).
-const forceReward = (page) => page.evaluate(() => {
+const showOnly = (page, id) => page.evaluate((want) => {
+  document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('is-active', s.id === want));
+}, id);
+
+// Test-only: jump straight to a filled reward screen (skips a 45 s round).
+const forceReward = (page) => page.evaluate(async () => {
+  const { renderReward } = await import('/js/reward-ui.js');
+  const { makeT } = await import('/js/i18n.js');
+  const { pickTheme } = await import('/js/themes.js');
+  const t = makeT(document.documentElement.lang, pickTheme('itu').strings);
+  renderReward({
+    avatarsEl: document.getElementById('reward-avatars'),
+    chatEl: document.getElementById('reward-chat'),
+    scoreEl: document.getElementById('reward-score'),
+    chat: t('rewardChat'),
+    scoreText: t('rewardScore', { score: 1688 }),
+  });
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('is-active', s.id === 'reward'));
+});
+
+// Every visible element of the active screen lies inside the viewport and the
+// screen does not need scrolling. Returns the offending extent, or null.
+const overflow = (page) => page.evaluate(() => {
+  const screen = document.querySelector('.screen.is-active');
+  screen.scrollTop = 0;
+  const box = { top: Infinity, bottom: -Infinity, left: Infinity, right: -Infinity };
+  screen.querySelectorAll('*').forEach((el) => {
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height || getComputedStyle(el).visibility === 'hidden') return;
+    box.top = Math.min(box.top, r.top); box.bottom = Math.max(box.bottom, r.bottom);
+    box.left = Math.min(box.left, r.left); box.right = Math.max(box.right, r.right);
+  });
+  const scrolls = screen.scrollHeight > screen.clientHeight + 1;
+  const fits = box.top >= 0 && box.bottom <= innerHeight && box.left >= 0 && box.right <= innerWidth && !scrolls;
+  return fits ? null : `${screen.id}: y ${Math.round(box.top)}..${Math.round(box.bottom)} / ${innerHeight}, x ${Math.round(box.left)}..${Math.round(box.right)} / ${innerWidth}${scrolls ? ', scrolls' : ''}`;
 });
 
 // True when the element is visible and fits the viewport — after scrolling it
@@ -85,17 +129,25 @@ try {
   await check('BAŞLA starts the game even while images are still loading', async () => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, userAgent: IPHONE_UA });
     await ctx.route('**/assets/cuisine/**', async (route) => {
-      await new Promise((r) => setTimeout(r, 2_500));
+      await new Promise((r) => setTimeout(r, IMAGE_DELAY_MS));
       await route.continue();
     });
     const page = await ctx.newPage();
     // 'load' would wait for the delayed images; the intro runs before that.
-    await page.goto(`${BASE}?src=itu`, { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => document.getElementById('intro').dataset.step);
+    // Same dev-server retry as open(): a reset module request never starts the intro.
+    for (let i = 1; ; i++) {
+      await page.goto(`${BASE}?src=itu`, { waitUntil: 'domcontentloaded' });
+      try {
+        await page.waitForFunction(() => document.getElementById('intro').dataset.step, null, { timeout: 5_000 });
+        break;
+      } catch (err) {
+        if (i >= 4) throw err;
+      }
+    }
     await page.click('#intro', { position: { x: 20, y: 20 } });
     await page.click('#btn-reward-play', { force: true });
     assert.equal(await page.evaluate(() => document.body.classList.contains('is-ready')), false, 'images should still be loading');
-    await waitForScreen(page, 'play', 8_000);
+    await waitForScreen(page, 'play', IMAGE_DELAY_MS + 5_000);
     await ctx.close();
   });
 
@@ -139,15 +191,18 @@ try {
 
   for (const lang of LOCALES) {
     for (const [width, height] of SIZES) {
-      await check(`${lang} ${width}x${height}: BAŞLA and TOPLA reachable`, async () => {
+      await check(`${lang} ${width}x${height}: ready, box and reward fit without scrolling`, async () => {
         const ctx = await browser.newContext({ viewport: { width, height }, userAgent: IPHONE_UA });
         try {
           const page = await open(ctx, `?src=itu&lang=${lang}`);
           await page.click('#intro', { position: { x: 5, y: 5 } });
-          assert.ok(await reachable(page, '#btn-reward-play'), 'BAŞLA unreachable');
-          assert.ok(await reachable(page, '.intro-ready .intro-lead'), 'ready-screen lead clipped');
+          const problems = [await overflow(page)];
+          await showOnly(page, 'box');
+          problems.push(await overflow(page));
           await forceReward(page);
-          assert.ok(await reachable(page, '[data-store="reward"]'), 'TOPLA unreachable');
+          problems.push(await overflow(page));
+          assert.ok(await reachable(page, '[data-store="reward"]'), 'TOPLA not on screen');
+          assert.deepEqual(problems.filter(Boolean), []);
         } finally {
           await ctx.close();
         }
