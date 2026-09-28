@@ -8,9 +8,12 @@ import { pickTheme } from './themes.js';
 import { sfx } from './audio.js';
 import { createGame } from './game.js';
 import { buildLegendIcons } from './crowd-art.js';
+import { pickFlow, introPlan } from './flow.js';
+import { playIntro } from './reward-ui.js';
 
 const BEST_KEY = 'feast-game.best.v1';
 const MUTE_KEY = 'feast-game.muted.v1';
+const INTRO_SEEN_KEY = 'feast-game.intro-seen.v1';
 const BUMP_MIN = 5;
 const RESIZE_DEBOUNCE_MS = 150;
 const BUMP_FRAMES = [{ transform: 'scale(1)' }, { transform: 'scale(1.18)' }, { transform: 'scale(1)' }];
@@ -30,6 +33,7 @@ if (params.get('dl') === '1' && STORE_URL) {
 const locale = pickLocale(params.get('lang'));
 const theme = pickTheme(source);
 const t = makeT(locale, theme?.strings);
+const flow = pickFlow(theme);
 document.documentElement.lang = locale;
 
 function track(event, data = {}) {
@@ -284,8 +288,24 @@ function preventPageGestures() {
   });
 }
 
+function startRewardIntro() {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const seen = storage('get', INTRO_SEEN_KEY) === '1';
+  showScreen('intro');
+  playIntro({
+    root: $('#intro'),
+    steps: introPlan({ seen, reducedMotion }),
+    onStep: (id) => {
+      if (id !== 'ready') return;
+      storage('set', INTRO_SEEN_KEY, '1');
+      track('intro_ready', { seen });
+    },
+  });
+}
+
 async function boot() {
   applyStrings();
+  if (flow === 'reward') startRewardIntro();
   renderLegend();
   setupStoreLinks();
   setupMute();
@@ -336,6 +356,7 @@ async function boot() {
     game.start();
   };
   $('#btn-play').addEventListener('click', play);
+  if (flow === 'reward') $('#btn-reward-play').addEventListener('click', play);
   $('#btn-again').addEventListener('click', play);
   $('#btn-share').hidden = !(navigator.share || navigator.clipboard);
   $('#btn-share').addEventListener('click', () => share(lastScore));

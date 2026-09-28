@@ -23,6 +23,7 @@
   <link rel="modulepreload" href="js/crowd-art.js">
   <link rel="modulepreload" href="js/fx.js">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="reward.css">
 </head>
 <body>
   <canvas id="stage" aria-label="Oyun alanı" data-i18n-aria="ariaGame"></canvas>
@@ -69,6 +70,28 @@
         <div class="ticker" aria-live="polite"><span id="ticker-text"></span></div>
         <a class="link-app" data-store="start" href="#" target="_top" rel="noopener" data-i18n="skipToApp"></a>
       </div>
+    </div>
+  </section>
+
+  <!-- REWARD FLOW INTRO (only themes with flow: 'reward') -->
+  <section id="intro" class="screen intro" aria-live="polite">
+    <div class="intro-frame" data-frame="mystery"><span class="intro-q" aria-hidden="true">?</span></div>
+    <div class="intro-frame" data-frame="swirl" aria-hidden="true"></div>
+    <div class="intro-frame" data-frame="scribble" aria-hidden="true"></div>
+    <div class="intro-frame" data-frame="brand"><b class="intro-brand" data-i18n="introBrand"></b></div>
+    <div class="intro-frame" data-frame="promise">
+      <p class="intro-promise">
+        <small data-i18n="introLead"></small>
+        <span data-i18n="introPromise"></span>
+        <em class="sparkle" data-i18n="introHot"></em>
+        <span data-i18n="introTail"></span>
+      </p>
+    </div>
+    <div class="intro-frame intro-ready" data-frame="ready">
+      <small class="intro-lead" data-i18n="introLead"></small>
+      <h1 data-i18n="readyMain"></h1>
+      <strong class="sparkle intro-hot" data-i18n="readyHot"></strong>
+      <button id="btn-reward-play" class="btn btn-primary btn-pulse" type="button" data-i18n="readyPlay"></button>
     </div>
   </section>
 
