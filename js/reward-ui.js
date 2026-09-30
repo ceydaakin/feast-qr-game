@@ -6,7 +6,32 @@ import { REWARD_CONFIG } from './reward-config.js';
 const SPARKS = 14; // particles in the box's light burst
 const HAPTIC_OPEN = [15, 30, 25, 30, 40, 30, 90]; // builds up with the shake, big thump on the burst
 
+// Two interleaved Archimedean spiral arms (ink + feast red) in a 200×200 box.
+// Built once as an SVG string: crisp at any size, one GPU layer to rotate.
+const SPIRAL_TURNS = 8;
+function spiralSvg() {
+  const arm = (phase) => {
+    const end = SPIRAL_TURNS * Math.PI * 2;
+    const pts = [];
+    for (let a = 0; a <= end; a += 0.12) {
+      const r = (a / end) * 100;
+      pts.push(`${(100 + r * Math.cos(a + phase)).toFixed(2)},${(100 + r * Math.sin(a + phase)).toFixed(2)}`);
+    }
+    return `M${pts.join('L')}`;
+  };
+  const w = (100 / SPIRAL_TURNS / 2) * 0.46; // each arm fills ~half the gap to the next
+  return `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" fill="none" stroke-linecap="round">`
+    + `<path d="${arm(0)}" stroke="#3a1d10" stroke-width="${w.toFixed(2)}"/>`
+    + `<path d="${arm(Math.PI)}" stroke="#ff3131" stroke-width="${w.toFixed(2)}"/></svg>`;
+}
+
+function ensureSpiral(root) {
+  const host = root.querySelector('.intro-vortex-spin');
+  if (host && !host.childElementCount) host.innerHTML = spiralSvg();
+}
+
 export function playIntro({ root, steps, onStep = () => {} }) {
+  ensureSpiral(root);
   const seq = createSequencer({
     steps,
     onStep: (id) => {

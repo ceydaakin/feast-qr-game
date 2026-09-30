@@ -10,13 +10,23 @@ const TILE = 2.5; // world units per road tile
 const EDGE = SQUAD.roadHalf;
 const Z_NEAR = -SQUAD.camDist * 0.2;
 const Z_FAR = SQUAD.spawnZ + 40;
+// Grounds with `toHorizon` (the İTÜ stadium) run the track all the way to the
+// vanishing point and stretch the grass past both screen edges.
+const Z_HORIZON = 4000; // scale ≈ 0.005: the track tip lands a few px under the horizon
+const STRIPE_MIN_PX = 0.5; // stop drawing mowed stripes once a half-tile is thinner than this
+const HAZE_FRAC = 0.16; // horizon haze height, share of the ground
+const HAZE_FRAC_HORIZON = 0.035; // thin haze, so the stripes visibly reach the horizon
 const SIDES = [[-8, -EDGE - 0.12], [EDGE + 0.12, 8]];
+const WIDE_SIDES = [[-2000, -EDGE - 0.12], [EDGE + 0.12, 2000]];
 const CURBS = [[-EDGE - 0.12, -EDGE], [EDGE, EDGE + 0.12]];
 const ROAD = [[-EDGE, EDGE]];
 const LANES = [-0.75, 0, 0.75].map((l) => [l - 0.02, l + 0.02]);
 
 export function createGround(ground, proj) {
   const { xAt, yAt } = proj;
+  const zFar = ground.toHorizon ? Z_HORIZON : Z_FAR;
+  const sides = ground.toHorizon ? WIDE_SIDES : SIDES;
+  let stripeFar = SQUAD.spawnZ;
   let haze = null;
   let hazeH = 0;
 
@@ -33,7 +43,7 @@ export function createGround(ground, proj) {
   function fillQuads(ctx, color, spans) {
     ctx.fillStyle = color;
     ctx.beginPath();
-    for (let i = 0; i < spans.length; i++) quad(ctx, spans[i][0], spans[i][1], Z_NEAR, Z_FAR);
+    for (let i = 0; i < spans.length; i++) quad(ctx, spans[i][0], spans[i][1], Z_NEAR, zFar);
     ctx.fill();
   }
 
@@ -43,7 +53,7 @@ export function createGround(ground, proj) {
     const off = dist % TILE;
     ctx.fillStyle = color;
     ctx.beginPath();
-    for (let k = -1; k * TILE < SQUAD.spawnZ; k++) {
+    for (let k = -1; k * TILE < stripeFar; k++) {
       const z0 = k * TILE - off + shift;
       for (let i = 0; i < spans.length; i++) quad(ctx, spans[i][0], spans[i][1], z0, z0 + TILE / 2);
     }
@@ -52,17 +62,35 @@ export function createGround(ground, proj) {
 
   const solidCurbs = ground.edgeA === ground.edgeB;
 
+  // Farthest z where a half-tile stripe is still at least STRIPE_MIN_PX tall
+  // (dy/dz of the projection); past that stripes would only shimmer, so the
+  // backdrop's solid grass takes over under the horizon haze.
+  function stripeReach(horizonY, groundY) {
+    const k = (groundY - horizonY) * SQUAD.camDist * (TILE / 2) / STRIPE_MIN_PX;
+    return Math.max(SQUAD.spawnZ, Math.sqrt(k) - SQUAD.camDist);
+  }
+
   // Static layers, in the same order they used to be painted each frame.
   function renderBackdrop(sky, w, h, horizonY, groundY, dpr, frameCtx) {
     const { c, ctx } = makeCanvas(w, h, dpr);
     ctx.drawImage(sky, 0, 0, w, horizonY + 2);
     ctx.fillStyle = ground.field;
     ctx.fillRect(0, horizonY, w, h - horizonY);
-    fillQuads(ctx, ground.side, SIDES);
+    fillQuads(ctx, ground.side, sides);
+    stripeFar = ground.toHorizon ? stripeReach(horizonY, groundY) : SQUAD.spawnZ;
+    if (ground.toHorizon && ground.sideFar) {
+      // Past the last sub-pixel stripe, grass in the stripes' average colour:
+      // from afar the mowed pattern blends into exactly this, so the field
+      // reads as striped all the way to the horizon with no visible cut.
+      ctx.fillStyle = ground.sideFar;
+      ctx.beginPath();
+      for (let i = 0; i < sides.length; i++) quad(ctx, sides[i][0], sides[i][1], stripeFar, zFar);
+      ctx.fill();
+    }
     fillQuads(ctx, ground.road, ROAD);
     if (solidCurbs) fillQuads(ctx, ground.edgeA, CURBS);
     if (ground.lanes) fillQuads(ctx, ground.lanes, LANES);
-    hazeH = (groundY - horizonY) * 0.16;
+    hazeH = (groundY - horizonY) * (ground.toHorizon ? HAZE_FRAC_HORIZON : HAZE_FRAC);
     haze = frameCtx.createLinearGradient(0, horizonY, 0, horizonY + hazeH);
     haze.addColorStop(0, `rgba(${ground.haze},1)`);
     haze.addColorStop(1, `rgba(${ground.haze},0)`);
@@ -71,7 +99,7 @@ export function createGround(ground, proj) {
 
   // Per frame: only what scrolls, then the horizon haze on top.
   function drawMoving(ctx, dist, w, horizonY) {
-    fillStripes(ctx, ground.sideAlt, SIDES, 0, dist); // mowed-grass stripes
+    fillStripes(ctx, ground.sideAlt, sides, 0, dist); // mowed-grass stripes
     fillStripes(ctx, ground.roadStripe, ROAD, 0, dist);
     if (!solidCurbs) {
       fillStripes(ctx, ground.edgeA, CURBS, 0, dist);

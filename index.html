@@ -75,8 +75,11 @@
 
   <!-- REWARD FLOW INTRO (only themes with flow: 'reward') -->
   <section id="intro" class="screen intro" aria-live="polite">
+    <!-- 1–2: one hypnotic spiral (built in reward-ui.js) that keeps spinning
+         across both steps, then collapses into the centre -->
+    <div class="intro-vortex" aria-hidden="true"><div class="intro-vortex-spin"></div></div>
     <div class="intro-frame" data-frame="mystery"><span class="intro-q" aria-hidden="true">?</span></div>
-    <div class="intro-frame" data-frame="swirl" aria-hidden="true"></div>
+    <div class="intro-frame" data-frame="swirl" aria-hidden="true"><span class="intro-q" aria-hidden="true">?</span></div>
     <div class="intro-frame" data-frame="scribble" aria-hidden="true"></div>
     <div class="intro-frame" data-frame="brand">
       <div class="intro-brand">
@@ -107,8 +110,9 @@
     <div class="box-wrap">
       <h2 data-i18n="boxTitle"></h2>
       <button id="btn-box" class="mystery-box" type="button" aria-label="Ödül kutusunu aç" data-i18n-aria="boxOpen">
-        <span class="box-lid" aria-hidden="true">?</span>
-        <span class="box-body" aria-hidden="true">?</span>
+        <span class="box-body" aria-hidden="true"><span class="box-ribbon"></span><span class="box-medal">?</span></span>
+        <span class="box-lid" aria-hidden="true"><span class="box-ribbon"></span><span class="box-bow"><span class="box-knot"></span></span></span>
+        <span class="box-twinkles" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
         <span class="box-burst" aria-hidden="true"></span>
         <span class="box-sparks" aria-hidden="true"></span>
       </button>
@@ -121,18 +125,31 @@
   <section id="reward" class="screen">
     <div class="card reward-card">
       <img class="logo" src="assets/logo.webp" alt="feast." width="120" height="33">
+      <p class="reward-kicker"><span aria-hidden="true">🎉</span> <span data-i18n="rewardKicker"></span></p>
       <h2 class="reward-title" data-i18n="rewardTitle"></h2>
       <ul id="reward-places" class="place-cards"></ul>
+      <ul class="reward-perks">
+        <li data-i18n="rewardPerk1"></li>
+        <li data-i18n="rewardPerk2"></li>
+        <li data-i18n="rewardPerk3"></li>
+      </ul>
       <div class="reward-friends">
         <div id="reward-avatars" class="avatar-stack" aria-hidden="true"></div>
         <span data-i18n="rewardFriends"></span>
       </div>
-      <a class="btn btn-primary btn-pulse reward-collect" data-store="reward" href="#" target="_top" rel="noopener" data-i18n="rewardCollect"></a>
-      <div class="app-qr" data-desktop-only>
-        <img src="assets/store-qr.svg" loading="lazy" alt="feast. uygulamasını indirme QR kodu" data-i18n-alt="altStoreQr" width="132" height="132">
-        <div class="app-qr-text">
-          <b data-i18n="qrTitle"></b>
-          <small data-i18n="qrHint" data-i18n-platform></small>
+      <!-- Store buttons: phones see only their own store (one big button),
+           desktops see both. No QR. Links + visibility set in reward-ui.js. -->
+      <div class="reward-cta">
+        <p class="reward-waiting" data-i18n="rewardWaiting"></p>
+        <div class="store-buttons">
+          <a class="btn store-btn" data-store-btn="ios" href="#" target="_top" rel="noopener">
+            <svg class="store-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0-4.5-4.5M12 14l4.5-4.5M5 17v2.5h14V17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="store-text"><b data-i18n="rewardCollect"></b><small data-i18n="rewardStore_ios"></small></span>
+          </a>
+          <a class="btn store-btn" data-store-btn="android" href="#" target="_top" rel="noopener">
+            <svg class="store-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0-4.5-4.5M12 14l4.5-4.5M5 17v2.5h14V17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="store-text"><b data-i18n="rewardCollect"></b><small data-i18n="rewardStore_android"></small></span>
+          </a>
         </div>
       </div>
       <p id="reward-score" class="stats"></p>

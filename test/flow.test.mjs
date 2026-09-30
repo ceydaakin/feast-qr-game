@@ -39,10 +39,9 @@ test('intro ends on a terminal ready step that waits for a click', () => {
   INTRO_STEPS.slice(0, -1).forEach((s) => assert.ok(s.ms > 0, `${s.id} needs a duration`));
 });
 
-test('introPlan skips straight to ready for returning visitors and reduced motion', () => {
-  assert.equal(introPlan({ seen: false, reducedMotion: false }).length, INTRO_STEPS.length);
-  assert.deepEqual(introPlan({ seen: true, reducedMotion: false }).map((s) => s.id), ['ready']);
-  assert.deepEqual(introPlan({ seen: false, reducedMotion: true }).map((s) => s.id), ['ready']);
+test('introPlan plays the spiral intro every visit; only reduced motion skips to ready', () => {
+  assert.equal(introPlan({ reducedMotion: false }).length, INTRO_STEPS.length);
+  assert.deepEqual(introPlan({ reducedMotion: true }).map((s) => s.id), ['ready']);
 });
 
 test('sequencer walks every step in order and stops at the terminal step', () => {
@@ -70,7 +69,7 @@ test('skip jumps to ready once and cancels pending timers', () => {
 test('skip after the intro finished does nothing', () => {
   const clock = fakeClock();
   const seen = [];
-  const seq = createSequencer({ steps: introPlan({ seen: true, reducedMotion: false }), onStep: (id) => seen.push(id), ...clock });
+  const seq = createSequencer({ steps: introPlan({ reducedMotion: true }), onStep: (id) => seen.push(id), ...clock });
   seq.start();
   seq.skip();
   assert.deepEqual(seen, ['ready']);
@@ -193,7 +192,7 @@ test('campus fills the reward copy; İTÜ/ITU by default', () => {
   assert.equal(rewardT('en')('introLead'), 'For ITU students');
   assert.equal(rewardT('tr', 'ODTÜ')('introLead'), 'ODTÜ\'lülere özel');
   assert.equal(rewardT('en', 'ODTÜ')('introLead'), 'For ODTÜ students');
-  assert.match(rewardT('tr', 'ODTÜ')('rewardTitle'), /^ODTÜ'de, Kadıköy'de, Beşiktaş'ta/);
+  assert.match(rewardT('tr', 'ODTÜ')('rewardTitle'), /^ODTÜ'de, Kadıköy'de ve Beşiktaş'ta/);
   assert.match(rewardT('en', 'ODTÜ')('rewardTitle'), /in ODTÜ, Kadıköy and Beşiktaş/);
 });
 

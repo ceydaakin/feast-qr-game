@@ -12,6 +12,7 @@ import { pickFlow, introPlan } from './flow.js';
 import { REWARD_CONFIG } from './reward-config.js';
 import { themeStringsWithReward } from './campus.js';
 import { playIntro, openBoxScreen, renderReward } from './reward-ui.js';
+import { loadSpriteOverrides } from './sprites.js';
 
 const BEST_KEY = 'feast-game.best.v1';
 const MUTE_KEY = 'feast-game.muted.v1';
@@ -182,6 +183,25 @@ function setupStoreLinks() {
   document.querySelectorAll('[data-desktop-only]').forEach((el) => { el.hidden = Boolean(STORE_URL); });
 }
 
+// Reward screen: no QR. Phones get one big button for their own store;
+// desktops get both stores side by side.
+function setupRewardStores() {
+  const single = platform !== 'desktop';
+  document.querySelectorAll('[data-store-btn]').forEach((a) => {
+    const store = a.dataset.storeBtn;
+    a.href = storeUrl(store, source);
+    a.hidden = single && store !== platform;
+    a.classList.toggle('btn-primary', single);
+    a.classList.toggle('btn-pulse', single);
+    if (!single) { // desktop: two store buttons, each named by its store
+      a.querySelector('b').textContent = store === 'ios' ? 'App Store' : 'Google Play';
+      a.querySelector('small').textContent = t('rewardStoreFree');
+    }
+    a.addEventListener('click', () => track('store_click', { platform, from: 'reward', store }));
+  });
+  $('#reward .store-buttons')?.classList.toggle('is-single', single);
+}
+
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach((el) => {
     el.classList.toggle('is-active', el.id === id);
@@ -340,7 +360,7 @@ function startRewardIntro() {
   showScreen('intro');
   playIntro({
     root: $('#intro'),
-    steps: introPlan({ seen, reducedMotion }),
+    steps: introPlan({ reducedMotion }), // `seen` is only tracked now; the spiral plays every visit
     onStep: (id) => {
       if (id !== 'ready') return;
       storage('set', INTRO_SEEN_KEY, '1');
@@ -354,6 +374,7 @@ async function boot() {
   if (flow === 'reward') startRewardIntro();
   renderLegend();
   setupStoreLinks();
+  setupRewardStores();
   setupMute();
   setupCraving();
   preventPageGestures();
@@ -362,7 +383,10 @@ async function boot() {
   let best = Number(storage('get', BEST_KEY)) || 0;
   $('#start-best').textContent = best ? `${t('best')}: ${best}` : '';
 
-  const cuisineImages = await Promise.all(CUISINES.map((c) => loadImage(c.img)));
+  const [cuisineImages] = await Promise.all([
+    Promise.all(CUISINES.map((c) => loadImage(c.img))),
+    loadSpriteOverrides(theme?.art?.spriteDir), // optional PNG characters/food (İTÜ)
+  ]);
   const places = CUISINES.map((c, i) => ({ img: cuisineImages[i], label: t(`cuisine_${c.id}`) }));
   let lastScore = 0;
 

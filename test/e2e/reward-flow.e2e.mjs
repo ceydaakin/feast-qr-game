@@ -179,8 +179,9 @@ try {
     await page.click('#btn-box', { force: true });
     await waitForScreen(page, 'reward', 5_000);
     assert.equal(await page.locator('#reward-places .place-card').count(), 4);
-    assert.equal(await page.isVisible('[data-store="reward"]'), true, 'TOPLA visible on phones');
-    assert.equal(await page.isHidden('#reward [data-desktop-only]'), true, 'QR hidden on phones');
+    assert.equal(await page.isVisible('[data-store-btn="ios"]'), true, 'App Store button visible on iPhone');
+    assert.equal(await page.isHidden('[data-store-btn="android"]'), true, 'only the own store on phones');
+    assert.equal(await page.locator('#reward img[src*="qr"]').count(), 0, 'no QR on the reward screen');
     await page.close();
   });
 
@@ -219,11 +220,14 @@ try {
     await page.close();
   });
 
-  await check('desktop: TOPLA hidden, QR shown', async () => {
+  await check('desktop: both store buttons, no QR', async () => {
     const page = await open(desktop);
     await forceReward(page);
-    assert.equal(await page.isHidden('[data-store="reward"]'), true);
-    assert.equal(await page.isVisible('#reward [data-desktop-only]'), true);
+    assert.equal(await page.isVisible('[data-store-btn="ios"]'), true);
+    assert.equal(await page.isVisible('[data-store-btn="android"]'), true);
+    assert.match(await page.getAttribute('[data-store-btn="ios"]', 'href'), /apps\.apple\.com/);
+    assert.match(await page.getAttribute('[data-store-btn="android"]', 'href'), /play\.google\.com/);
+    assert.equal(await page.locator('#reward img[src*="qr"]').count(), 0);
     await page.close();
   });
 
@@ -245,7 +249,7 @@ try {
           problems.push(await overflow(page));
           await forceReward(page);
           problems.push(await overflow(page));
-          assert.ok(await reachable(page, '[data-store="reward"]'), 'TOPLA not on screen');
+          assert.ok(await reachable(page, '[data-store-btn="ios"]'), 'ÖDÜLÜ AL not on screen');
           assert.deepEqual(problems.filter(Boolean), []);
         } finally {
           await ctx.close();

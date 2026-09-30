@@ -98,3 +98,43 @@ export function spinStrip(img, steps) {
   c.steps = steps;
   return c;
 }
+
+// ---------- PNG overrides ----------
+// A theme with `art.spriteDir` (İTÜ: assets/itu/) can swap the drawn
+// characters and thrown food for PNGs. Every file is optional: whatever is
+// missing keeps its procedural drawing. Names (without .png):
+export const SPRITE_NAMES = Object.freeze([
+  'chef', 'chef-leader',
+  'eater-1', 'eater-2', 'eater-3', 'eater-big', 'boss',
+  'tomato', 'cheese', 'pepperoni', 'mushroom', 'olive', 'basil',
+]);
+const overrides = new Map();
+
+// Resolves once every file has loaded or failed (a missing file is not an error).
+export function loadSpriteOverrides(dir) {
+  if (!dir) return Promise.resolve();
+  return Promise.all(SPRITE_NAMES.map((name) => new Promise((resolve) => {
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => {
+      if (img.naturalWidth) overrides.set(name, img);
+      resolve();
+    };
+    img.onerror = () => resolve();
+    img.src = `${dir}${name}.png`;
+  })));
+}
+
+export const spriteOverride = (...names) => {
+  for (const n of names) if (overrides.has(n)) return overrides.get(n);
+  return null;
+};
+
+// Fit an image inside a w×h box, keeping its aspect ratio, standing on the
+// box's bottom edge (feet on the ground) and centred horizontally.
+export function drawContain(ctx, img, x, y, w, h, align = 'bottom') {
+  const s = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+  const dw = img.naturalWidth * s; const dh = img.naturalHeight * s;
+  const dy = align === 'bottom' ? y + h - dh : y + (h - dh) / 2;
+  ctx.drawImage(img, x + (w - dw) / 2, dy, dw, dh);
+}

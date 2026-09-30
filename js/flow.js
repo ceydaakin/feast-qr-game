@@ -19,15 +19,18 @@ export const REWARD_KEYS = Object.freeze([
   'introLead', 'introPromise', 'introHot', 'introTail',
   'readyMain', 'readyHot', 'readyPlay',
   'boxTitle', 'boxHint', 'boxOpen',
-  'rewardTitle', 'rewardCollect', 'rewardFriends', 'rewardScore',
+  'rewardKicker', 'rewardTitle', 'rewardPerk1', 'rewardPerk2', 'rewardPerk3',
+  'rewardFriends', 'rewardWaiting', 'rewardCollect', 'rewardStore_ios', 'rewardStore_android', 'rewardStoreFree', 'rewardScore',
 ]);
 
 export function pickFlow(theme) {
   return theme?.flow === 'reward' ? 'reward' : 'classic';
 }
 
-export function introPlan({ seen, reducedMotion }) {
-  return seen || reducedMotion ? INTRO_STEPS.slice(-1) : [...INTRO_STEPS];
+// The spiral intro plays on every visit (tap skips it). Only visitors who
+// asked their device for reduced motion go straight to BAŞLA.
+export function introPlan({ reducedMotion }) {
+  return reducedMotion ? INTRO_STEPS.slice(-1) : [...INTRO_STEPS];
 }
 
 export function createSequencer({ steps, onStep, schedule = setTimeout, cancel = clearTimeout }) {

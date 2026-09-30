@@ -155,8 +155,10 @@ export const GROUNDS = Object.freeze({
     edgeA: RED, edgeB: '#ffffff', lanes: null, haze: '255,243,227',
   },
   stadium: {
-    field: '#5cae4a', side: '#4f9e3f', sideAlt: '#63b953', road: '#c1502f', roadStripe: 'rgba(255,255,255,0.05)',
-    edgeA: '#ffffff', edgeB: '#ffffff', lanes: 'rgba(255,255,255,0.8)', haze: '238,246,251',
+    // roadStripe: null — a real tartan track is one smooth colour, only the lane lines show.
+    // sideFar: the average of side/sideAlt, used for grass too far away for single stripes.
+    field: '#5cae4a', side: '#4f9e3f', sideAlt: '#63b953', sideFar: '#59ac49', road: '#c1502f', roadStripe: null,
+    edgeA: '#ffffff', edgeB: '#ffffff', lanes: 'rgba(255,255,255,0.8)', haze: '238,246,251', toHorizon: true,
   },
 });
 

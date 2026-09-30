@@ -11,6 +11,8 @@ export const THEMES = Object.freeze({
     art: {
       eaterLabel: 'İTÜ',
       shirts: ITU_BLUE,
+      // Drop PNGs here to replace the drawn characters/food (see assets/itu/README.md).
+      spriteDir: 'assets/itu/',
     },
     signs: {
       tr: [['Hoş geldin!', 'Yeni dönem · İTÜ 1773'], ['MED Çimleri', 'Piknik zamanı 🧺'], ['MED Makarnası', 'Sıcak sıcak 🍝'], ['Gölet', 'Kenarında mola 🦆'], ['Ayazağa', 'Yemekhane sırası →']],

@@ -1,6 +1,8 @@
 // Procedural cartoon ingredient art. Each item is drawn once into an offscreen
 // canvas (sprite cache) so the game loop only ever calls drawImage.
 
+import { spriteOverride, drawContain } from './sprites.js';
+
 const INK = '#3a1d10';
 
 function outline(ctx, w = 3) {
@@ -328,6 +330,17 @@ export function renderSprite(kind, sizePx, isBad) {
   canvas.width = sizePx;
   canvas.height = sizePx;
   const ctx = canvas.getContext('2d');
+  const png = spriteOverride(kind); // e.g. assets/itu/tomato.png
+  if (png) {
+    const pad = sizePx * (10 / 120); // same margin the drawn food has
+    drawContain(ctx, png, pad, pad, sizePx - pad * 2, sizePx - pad * 2, 'center');
+    if (isBad) {
+      ctx.translate(sizePx / 2, sizePx / 2);
+      ctx.scale(sizePx / 120, sizePx / 120);
+      stampNo(ctx);
+    }
+    return canvas;
+  }
   // 100-unit box plus padding for glow/outline overflow.
   const scale = sizePx / 120;
   ctx.translate(sizePx / 2, sizePx / 2);
