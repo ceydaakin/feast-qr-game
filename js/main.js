@@ -183,23 +183,13 @@ function setupStoreLinks() {
   document.querySelectorAll('[data-desktop-only]').forEach((el) => { el.hidden = Boolean(STORE_URL); });
 }
 
-// Reward screen: no QR. Phones get one big button for their own store;
-// desktops get both stores side by side.
+// Download page: one yellow "feast'i indir" button → get.feast.tr on every
+// device (that page sends people on to the right store).
 function setupRewardStores() {
-  const single = platform !== 'desktop';
-  document.querySelectorAll('[data-store-btn]').forEach((a) => {
-    const store = a.dataset.storeBtn;
-    a.href = storeUrl(store, source);
-    a.hidden = single && store !== platform;
-    a.classList.toggle('btn-primary', single);
-    a.classList.toggle('btn-pulse', single);
-    if (!single) { // desktop: two store buttons, each named by its store
-      a.querySelector('b').textContent = store === 'ios' ? 'App Store' : 'Google Play';
-      a.querySelector('small').textContent = t('rewardStoreFree');
-    }
-    a.addEventListener('click', () => track('store_click', { platform, from: 'reward', store }));
-  });
-  $('#reward .store-buttons')?.classList.toggle('is-single', single);
+  const main = $('[data-store-main]');
+  if (!main) return;
+  main.href = REWARD_CONFIG.downloadUrl;
+  main.addEventListener('click', () => track('store_click', { platform, from: 'reward_main' }));
 }
 
 function showScreen(id) {

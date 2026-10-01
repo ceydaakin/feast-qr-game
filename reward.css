@@ -304,133 +304,234 @@
 @keyframes flash { 0% { opacity: 0; } 30% { opacity: .85; } 100% { opacity: 0; } }
 @keyframes burst { 60% { opacity: 1; } to { opacity: 0; transform: scale(1.4); } }
 
-/* ---------- reward ----------
-   Kept simple and phone-first: logo, reward, restaurants, friends, TOPLA, then
-   score and replay. Fits one screen with no scrolling; sizes follow the
-   viewport height as well as its width. */
-.reward-card { display: grid; justify-items: center; gap: clamp(8px, 1.8dvh, 16px); padding: clamp(14px, 3dvh, 24px) 16px clamp(12px, 2.4dvh, 20px); }
-.reward-card .logo { width: clamp(88px, 13dvh, 128px); margin: 0; }
-.reward-title { margin: 0; font-size: clamp(18px, min(6.2vw, 3.6dvh), 28px); line-height: 1.15; color: var(--ink); }
-.reward-friends { display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 800; font-size: 14px; }
-.avatar-stack { display: flex; }
-.avatar-stack span {
-  display: grid;
-  place-items: center;
-  width: clamp(28px, 4.6dvh, 38px);
-  height: clamp(28px, 4.6dvh, 38px);
-  margin-left: -10px;
-  border: 2.5px solid var(--ink);
-  border-radius: 50%;
-  font-size: clamp(15px, 2.4dvh, 20px);
+/* ---------- reward: download page ----------
+   After the box opens: "Ödülün hazır!", the open gift glowing from inside,
+   one big yellow "feast'i indir" button, App Store + Google Play badges.
+   Fits one screen with no scrolling; sizes follow the viewport height too. */
+.reward-screen {
+  overflow: hidden;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background:
+    radial-gradient(circle at 0 0, #ffe39a 0 13%, transparent 13.5%),
+    radial-gradient(circle at 100% 100%, #ffd0d4 0 15%, transparent 15.5%),
+    radial-gradient(circle at 0 100%, #ffeab8 0 11%, transparent 11.5%),
+    radial-gradient(ellipse at 50% 48%, #fff1bf 0%, var(--cream) 62%);
 }
-.avatar-stack span:first-child { margin-left: 0; }
-.reward-kicker {
-  margin: 0;
-  padding: 4px 12px;
-  border: 2px solid var(--ink);
-  border-radius: 999px;
-  background: var(--gold, #ffd23f);
-  font-weight: 900;
-  font-size: clamp(13px, 2dvh, 16px);
-  animation: kickerPop .6s cubic-bezier(.2, .9, .3, 1.5) both;
-}
-@keyframes kickerPop { from { transform: scale(.3) rotate(-8deg); opacity: 0; } }
+/* hidden screen: stop every looping animation in it */
+#reward:not(.is-active) *, #reward:not(.is-active) *::before, #reward:not(.is-active) *::after { animation-play-state: paused; }
 
-/* What they get: short ticked lines, left-aligned as a block. */
-.reward-perks { list-style: none; margin: 0; padding: 0; display: grid; gap: clamp(2px, .6dvh, 6px); text-align: left; font-weight: 800; font-size: clamp(13px, 2.1dvh, 15px); }
-.reward-perks li { display: flex; align-items: center; gap: 8px; }
-.reward-perks li::before {
-  content: "✓";
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--green, #2bb673);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 900;
-}
-
-/* Download: the reward "lives" in the app. */
-.reward-cta { width: 100%; display: grid; gap: clamp(4px, 1dvh, 8px); }
-.reward-waiting { margin: 0; font-weight: 900; font-size: clamp(14px, 2.2dvh, 17px); color: var(--red-deep); }
-.store-buttons { display: flex; gap: 10px; width: 100%; }
-.store-btn { flex: 1; justify-content: center; gap: 10px; padding: clamp(9px, 1.8dvh, 14px) 14px; text-align: left; }
-.store-btn[hidden] { display: none; }
-.store-icon { flex: none; width: 1.6em; height: 1.6em; }
-.store-text { display: grid; gap: 3px; }
-.store-text b { font-size: 1em; line-height: 1; white-space: nowrap; }
-.store-text small { font-size: .55em; font-weight: 800; opacity: .9; line-height: 1.1; }
-/* Phone: one big red button — ÖDÜLÜ AL / App Store'dan ücretsiz indir. */
-.store-buttons.is-single .store-btn { margin: 0; font-size: clamp(22px, 4.2dvh, 30px); }
-/* Desktop: two dark store-style buttons side by side. */
-.store-buttons:not(.is-single) .store-btn { background: #111; color: #fff; font-size: 18px; padding-inline: 10px; gap: 8px; }
-.store-buttons:not(.is-single) .store-btn:hover { background: #2a2a2a; }
-
-/* Unlocked badge on each restaurant card. */
-.place-card { position: relative; }
-.place-card::after {
-  content: "🔓";
+.confetti { position: absolute; inset: 0; pointer-events: none; }
+.confetti i {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  font-size: 13px;
-  line-height: 1;
-  filter: drop-shadow(0 1px 0 #fff);
+  left: var(--x);
+  top: var(--y);
+  width: 16px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--c);
+  transform: rotate(var(--r));
+  animation: confettiFloat 2.8s ease-in-out infinite alternate;
 }
-.reward-card .stats { margin: 0; }
-.reward-card .row { width: 100%; margin: 0; }
-.reward-card .btn-ghost { padding: clamp(8px, 1.5dvh, 13px) 10px; font-size: 16px; }
+.confetti i:nth-child(odd) { animation-delay: -1.4s; }
+.confetti i:nth-child(3n) { width: 13px; height: 13px; border-radius: 0; clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%); }
+@keyframes confettiFloat { to { transform: rotate(calc(var(--r) + 30deg)) translateY(8px); } }
 
-/* Restaurant cards (Mustachio first; monogram until a logo file exists). */
-.place-cards { list-style: none; margin: 0; padding: 0; display: flex; justify-content: center; gap: 6px; }
-.place-card {
+.reward-wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
   display: grid;
   justify-items: center;
-  gap: 2px;
-  min-width: 58px;
-  padding: 4px 6px;
-  border: 2px solid var(--ink);
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 2px 0 var(--ink);
+  gap: clamp(6px, 1.6dvh, 14px);
+  text-align: center;
 }
-.place-card b { font-size: 11px; font-weight: 900; }
-.place-logo {
-  display: grid;
-  place-items: center;
-  width: clamp(24px, 3.8dvh, 32px);
-  height: clamp(24px, 3.8dvh, 32px);
+.reward-head { display: grid; gap: clamp(2px, .8dvh, 8px); }
+.reward-title {
+  margin: 0;
+  font: 900 clamp(32px, min(11vw, 7dvh), 56px)/1 var(--font);
+  color: var(--ink);
+  letter-spacing: -.01em;
+  animation: titlePop .7s cubic-bezier(.2, .9, .3, 1.5) both;
+}
+@keyframes titlePop { from { transform: scale(.4) rotate(-4deg); opacity: 0; } }
+.reward-sub { margin: 0 auto; max-width: 30ch; font-weight: 800; font-size: clamp(15px, min(4.4vw, 2.5dvh), 19px); line-height: 1.3; color: var(--ink); }
+
+/* The open gift: lid tilted back with the bow, light pouring out. Ribbon,
+   bow, knot and twinkles reuse the closed box's pieces. */
+.gift-open {
+  position: relative;
+  isolation: isolate;
+  width: min(62vw, 30dvh, 280px);
+  aspect-ratio: 1;
+  animation: giftBob 2.4s ease-in-out infinite;
+}
+/* Sunburst. It turns by animating the gradient's start angle, not by
+   rotating the element: a rotated square's corners poke past short
+   landscape screens and make the page scrollable. */
+@property --ray { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+.gift-open::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  z-index: -1;
   border-radius: 50%;
-  object-fit: cover;
-  color: #fff;
-  font: 900 15px/1 var(--font);
+  background: repeating-conic-gradient(from var(--ray), rgba(255, 190, 30, .5) 0 9deg, rgba(255, 190, 30, 0) 9deg 22.5deg);
+  -webkit-mask: radial-gradient(circle, #000 20%, transparent 66%);
+  mask: radial-gradient(circle, #000 20%, transparent 66%);
+  animation: rayTurn 14s linear infinite;
+  pointer-events: none;
 }
+@keyframes rayTurn { to { --ray: 360deg; } }
+.gift-body, .gift-lid {
+  position: absolute;
+  border: 4px solid var(--ink);
+  --dots: radial-gradient(circle, rgba(255, 255, 255, .3) 0 3.5px, transparent 4.5px) 0 0 / 20px 20px;
+}
+.gift-body {
+  left: 12%;
+  right: 12%;
+  bottom: 4%;
+  height: 50%;
+  z-index: 2;
+  border-radius: 6px 6px 20px 20px;
+  background: var(--dots), linear-gradient(160deg, #ff5b4d, #e32620 60%, #b8121b);
+  box-shadow: 0 7px 0 var(--ink), inset 0 -10px 0 rgba(0, 0, 0, .14);
+}
+.gift-body .box-ribbon { z-index: 0; }
+/* the glowing opening on top of the box */
+.gift-mouth {
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: -16%;
+  height: 24%;
+  z-index: 1;
+  border: 4px solid var(--ink);
+  border-radius: 12px;
+  background: radial-gradient(ellipse at 50% 60%, #fffbe0 0 18%, #ffd23f 40%, #ff9a1f 66%, #a3101a 100%);
+  box-shadow: 0 0 22px 6px rgba(255, 214, 80, .75);
+}
+.gift-medal {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  z-index: 2;
+  width: 34%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border: 4px solid var(--ink);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff7c9, var(--gold) 45%, #f0a000);
+  box-shadow: 0 3px 0 var(--ink);
+}
+.gift-medal::after { /* white four-point star */
+  content: "";
+  position: absolute;
+  inset: 20%;
+  background: #fff;
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+}
+.gift-lid {
+  left: 6%;
+  width: 84%;
+  top: 30%;
+  height: 15%;
+  z-index: 1;
+  border-radius: 12px;
+  background: var(--dots), linear-gradient(160deg, #ff7b6c, #e8302a);
+  box-shadow: 0 5px 0 var(--ink);
+  transform: translate(-6%, -36%) rotate(-20deg);
+  transform-origin: 0 100%;
+}
+.gift-lid .box-ribbon { width: 18%; }
+.gift-lid .box-bow { width: 64%; height: 130%; bottom: 86%; }
+/* light beams fanning up out of the box */
+.gift-beams {
+  position: absolute;
+  left: 50%;
+  bottom: 44%;
+  z-index: 3;
+  width: 96%;
+  height: 58%;
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;
+  background: radial-gradient(ellipse at 50% 100%, rgba(255, 252, 220, .95) 0, rgba(255, 214, 80, .55) 38%, transparent 72%);
+  clip-path: polygon(36% 100%, 64% 100%, 100% 0, 0 0);
+  animation: beams 1.6s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+.gift-open .box-twinkles { z-index: 4; }
+@keyframes giftBob { 50% { transform: translateY(-5px); } }
 
-/* Landscape phones: everything is squeezed by height; the logo shrinks, the
-   title widens to fewer lines. */
-@media (orientation: landscape) and (max-height: 500px) {
-  .reward-card { max-width: 620px; gap: min(8px, 1.8dvh); padding: 10px 16px; }
-  .reward-card .logo { width: min(90px, 14dvh); }
-  .reward-title { font-size: min(20px, 5.4dvh); }
-  .store-buttons.is-single .store-btn { font-size: min(24px, 7dvh); padding: min(10px, 2.2dvh); }
-  .reward-perks { display: none; } /* no room for them next to the buttons */
-  .place-card { min-width: 50px; padding: 2px 5px; }
-  .place-logo { width: min(26px, 7dvh); height: min(26px, 7dvh); }
-  .reward-card .btn-ghost { padding: min(8px, 2dvh) 6px; font-size: 14px; }
+/* İTÜ · Kadıköy · Beşiktaş · "ve yakında daha fazlası" pop in one by one
+   around the gift, then bob slowly. Each word has its own delay (--d), tilt
+   (--r) and float speed (--t), set inline in index.html. Separate scale /
+   translate properties so the pop-in and the floating never fight. */
+.gift-stage { position: relative; width: 100%; display: grid; place-items: center; }
+.float-word {
+  position: absolute;
+  z-index: 5;
+  padding: 4px 10px;
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 3px 0 var(--ink);
+  font: 900 clamp(12px, 3.4vw, 15px)/1.1 var(--font);
+  color: var(--ink);
+  white-space: nowrap;
+  rotate: var(--r, 0deg);
+  animation:
+    wordIn .6s cubic-bezier(.2, .9, .3, 1.5) var(--d, 0s) both,
+    wordFloat var(--t, 3.4s) ease-in-out calc(var(--d, 0s) + .6s) infinite alternate;
 }
+.float-more { max-width: 8.5em; white-space: normal; text-align: center; border-radius: 14px; background: var(--gold); }
+@keyframes wordIn { from { scale: .2; opacity: 0; } }
+@keyframes wordFloat { from { translate: 0 0; } to { translate: 0 -9px; } }
+@keyframes beams { from { opacity: .65; transform: translateX(-50%) scaleY(.92); } to { opacity: 1; transform: translateX(-50%) scaleY(1.05); } }
 
-/* Short portrait phones (iPhone SE…): drop the perks list so the button
-   stays on screen without scrolling. */
-@media (orientation: portrait) and (max-height: 760px) {
-  .reward-perks { display: none; }
+.reward-actions { width: 100%; display: grid; justify-items: center; gap: clamp(8px, 1.6dvh, 12px); }
+.reward-download {
+  width: 100%;
+  gap: 12px;
+  padding: clamp(12px, 2.2dvh, 18px) 20px;
+  border-radius: 999px;
+  font-size: clamp(22px, min(7vw, 4.2dvh), 30px);
+  background: linear-gradient(180deg, #ffe066, #ffc21a);
+  color: var(--ink);
+  animation: pulse 1.6s ease-in-out infinite;
 }
-@media (orientation: portrait) and (max-height: 600px) {
-  .reward-kicker, .reward-waiting { display: none; }
+.dl-icon { flex: none; width: 1.15em; height: 1.15em; }
+.reward-tagline { margin: 0; font-weight: 700; font-size: 14px; color: var(--ink); opacity: .85; }
+.reward-tagline .heart { color: var(--red); font-weight: 900; }
+.reward-meta { margin: 0; display: flex; align-items: center; justify-content: center; gap: 14px; font-size: 13px; font-weight: 800; color: rgba(58, 29, 16, .6); }
+.link-btn { border: 0; background: none; padding: 4px 2px; font: 800 13px var(--font); color: var(--ink); text-decoration: underline; cursor: pointer; }
+.link-btn[hidden] { display: none; }
+.reward-meta > * { white-space: nowrap; }
+
+/* Short portrait phones (iPhone SE…): smaller gift, no tagline. */
+@media (orientation: portrait) and (max-height: 620px) {
+  .gift-open { width: min(52vw, 26dvh); }
+  .reward-tagline { display: none; }
+  .float-word { font-size: 11.5px; padding: 3px 8px; }
 }
-/* Landscape phones: only the essentials fit next to the big button. */
+/* Landscape phones: gift on the left, text and buttons on the right. */
 @media (orientation: landscape) and (max-height: 500px) {
-  .reward-kicker, .reward-waiting, .reward-friends { display: none; }
+  .reward-wrap {
+    max-width: 720px;
+    grid-template-columns: auto 1fr;
+    grid-template-areas: "gift head" "gift actions";
+    column-gap: 28px;
+    align-items: center;
+  }
+  .gift-stage { grid-area: gift; width: min(44vw, 82dvh); }
+  .gift-open { width: min(30vw, 54dvh); }
+  .float-word { font-size: min(13px, 3.6dvh); }
+  .reward-head { grid-area: head; }
+  .reward-actions { grid-area: actions; }
+  .reward-title { font-size: min(40px, 11dvh); }
+  .reward-sub { font-size: min(16px, 4.4dvh); }
+  .reward-download { font-size: min(24px, 7dvh); padding: min(10px, 2.4dvh) 16px; }
+  .reward-tagline { display: none; }
 }

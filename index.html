@@ -122,40 +122,57 @@
   </section>
 
   <!-- REWARD FLOW: unlocked reward -->
-  <section id="reward" class="screen">
-    <div class="card reward-card">
-      <img class="logo" src="assets/logo.webp" alt="feast." width="120" height="33">
-      <p class="reward-kicker"><span aria-hidden="true">🎉</span> <span data-i18n="rewardKicker"></span></p>
-      <h2 class="reward-title" data-i18n="rewardTitle"></h2>
-      <ul id="reward-places" class="place-cards"></ul>
-      <ul class="reward-perks">
-        <li data-i18n="rewardPerk1"></li>
-        <li data-i18n="rewardPerk2"></li>
-        <li data-i18n="rewardPerk3"></li>
-      </ul>
-      <div class="reward-friends">
-        <div id="reward-avatars" class="avatar-stack" aria-hidden="true"></div>
-        <span data-i18n="rewardFriends"></span>
+  <!-- Download page after the box opens: big title, the open gift glowing,
+       one big yellow download button, both store badges. No QR. -->
+  <section id="reward" class="screen reward-screen">
+    <div class="confetti" aria-hidden="true">
+      <i style="--x:6%;--y:34%;--r:-30deg;--c:#ff4d6d"></i>
+      <i style="--x:14%;--y:12%;--r:40deg;--c:#ffc83d"></i>
+      <i style="--x:20%;--y:48%;--r:70deg;--c:#7c5cff"></i>
+      <i style="--x:8%;--y:62%;--r:-60deg;--c:#ffc83d"></i>
+      <i style="--x:16%;--y:80%;--r:20deg;--c:#ff8fab"></i>
+      <i style="--x:84%;--y:10%;--r:-40deg;--c:#ff8a00"></i>
+      <i style="--x:88%;--y:28%;--r:30deg;--c:#e84ae0"></i>
+      <i style="--x:78%;--y:44%;--r:-70deg;--c:#ffc83d"></i>
+      <i style="--x:90%;--y:58%;--r:60deg;--c:#ff4d6d"></i>
+      <i style="--x:82%;--y:76%;--r:-20deg;--c:#7c5cff"></i>
+      <i style="--x:30%;--y:6%;--r:15deg;--c:#ff4d6d"></i>
+      <i style="--x:66%;--y:5%;--r:-15deg;--c:#ffc83d"></i>
+    </div>
+    <div class="reward-wrap">
+      <div class="reward-head">
+        <h2 class="reward-title" data-i18n="rewardTitle"></h2>
+        <p class="reward-sub" data-i18n="rewardSub"></p>
       </div>
-      <!-- Store buttons: phones see only their own store (one big button),
-           desktops see both. No QR. Links + visibility set in reward-ui.js. -->
-      <div class="reward-cta">
-        <p class="reward-waiting" data-i18n="rewardWaiting"></p>
-        <div class="store-buttons">
-          <a class="btn store-btn" data-store-btn="ios" href="#" target="_top" rel="noopener">
-            <svg class="store-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0-4.5-4.5M12 14l4.5-4.5M5 17v2.5h14V17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span class="store-text"><b data-i18n="rewardCollect"></b><small data-i18n="rewardStore_ios"></small></span>
-          </a>
-          <a class="btn store-btn" data-store-btn="android" href="#" target="_top" rel="noopener">
-            <svg class="store-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0-4.5-4.5M12 14l4.5-4.5M5 17v2.5h14V17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span class="store-text"><b data-i18n="rewardCollect"></b><small data-i18n="rewardStore_android"></small></span>
-          </a>
+      <!-- The gift with the unlocked places floating gently around it. -->
+      <div class="gift-stage">
+        <div class="gift-open" aria-hidden="true">
+          <span class="gift-beams"></span>
+          <span class="gift-lid"><span class="box-ribbon"></span><span class="box-bow"><span class="box-knot"></span></span></span>
+          <span class="gift-body">
+            <span class="gift-mouth"></span>
+            <span class="box-ribbon"></span>
+            <span class="gift-medal"></span>
+          </span>
+          <span class="box-twinkles"><i></i><i></i><i></i><i></i></span>
         </div>
+        <span class="float-word" style="--d:.2s;--r:-6deg;--t:3.2s;left:0;top:6%" data-i18n="rewardPlaceCampus"></span>
+        <span class="float-word" style="--d:.45s;--r:5deg;--t:3.6s;right:0;top:20%">📍 Kadıköy</span>
+        <span class="float-word" style="--d:.7s;--r:4deg;--t:3.4s;left:1%;top:60%">📍 Beşiktaş</span>
+        <span class="float-word float-more" style="--d:.95s;--r:-4deg;--t:3.8s;right:0;top:64%" data-i18n="rewardMore"></span>
       </div>
-      <p id="reward-score" class="stats"></p>
-      <div class="row">
-        <button class="btn btn-ghost" type="button" data-action="again" data-i18n="again"></button>
-        <button class="btn btn-ghost" type="button" data-action="share" data-i18n="share"></button>
+      <div class="reward-actions">
+        <!-- Always goes to get.feast.tr (REWARD_CONFIG.downloadUrl), on every device. -->
+        <a class="btn reward-download" data-store-main href="https://get.feast.tr" target="_top" rel="noopener">
+          <svg class="dl-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0-4.5-4.5M12 14l4.5-4.5M5 17v2.5h14V17" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span data-i18n="rewardDownload"></span>
+        </a>
+        <p class="reward-tagline"><span data-i18n="rewardTagline"></span> <span class="heart" aria-hidden="true">♡</span></p>
+        <p class="reward-meta">
+          <span id="reward-score"></span>
+          <button class="link-btn" type="button" data-action="again" data-i18n="again"></button>
+          <button class="link-btn" type="button" data-action="share" data-i18n="share"></button>
+        </p>
       </div>
     </div>
   </section>

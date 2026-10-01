@@ -100,13 +100,15 @@ function placeCard(place) {
   return card;
 }
 
-export function renderReward({ avatarsEl, placesEl, scoreEl, scoreText }) {
-  avatarsEl.replaceChildren(...REWARD_CONFIG.avatars.map((a) => {
+// The download page only shows the score now; avatars / restaurant cards are
+// still filled if a layout includes those elements again.
+export function renderReward({ avatarsEl = null, placesEl = null, scoreEl, scoreText }) {
+  avatarsEl?.replaceChildren(...REWARD_CONFIG.avatars.map((a) => {
     const el = document.createElement('span');
     el.style.background = a.bg;
     el.textContent = a.emoji;
     return el;
   }));
-  placesEl.replaceChildren(...REWARD_CONFIG.restaurants.map(placeCard));
+  placesEl?.replaceChildren(...REWARD_CONFIG.restaurants.map(placeCard));
   scoreEl.textContent = scoreText;
 }

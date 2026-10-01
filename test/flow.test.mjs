@@ -119,8 +119,10 @@ test('reward avatars are placeholders with a background and an emoji', () => {
 // not state as fact that they are already on feast (fabricated social proof).
 test('reward copy makes no factual claim about the viewer\'s friends', () => {
   ['tr', 'en'].forEach((locale) => {
-    const text = rewardT(locale)('rewardFriends');
-    assert.doesNotMatch(text, /zaten|already/i, `${locale}: "${text}"`);
+    const t = rewardT(locale);
+    REWARD_KEYS.filter((k) => k.startsWith('reward')).forEach((key) => {
+      assert.doesNotMatch(String(t(key)), /zaten|already/i, `${locale}.${key}: "${t(key)}"`);
+    });
   });
 });
 
@@ -192,8 +194,8 @@ test('campus fills the reward copy; İTÜ/ITU by default', () => {
   assert.equal(rewardT('en')('introLead'), 'For ITU students');
   assert.equal(rewardT('tr', 'ODTÜ')('introLead'), 'ODTÜ\'lülere özel');
   assert.equal(rewardT('en', 'ODTÜ')('introLead'), 'For ODTÜ students');
-  assert.match(rewardT('tr', 'ODTÜ')('rewardTitle'), /^ODTÜ'de, Kadıköy'de ve Beşiktaş'ta/);
-  assert.match(rewardT('en', 'ODTÜ')('rewardTitle'), /in ODTÜ, Kadıköy and Beşiktaş/);
+  assert.match(rewardT('tr', 'ODTÜ')('rewardSub'), /ODTÜ'de lezzet/);
+  assert.match(rewardT('en', 'ODTÜ')('rewardSub'), /your ODTÜ food story/);
 });
 
 test('promise frame reads "Yeni döneme ÖDÜLLE başla"', () => {
