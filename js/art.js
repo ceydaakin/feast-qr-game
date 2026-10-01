@@ -325,6 +325,9 @@ function stampNo(ctx) {
   ctx.restore();
 }
 
+// True when this food can be shown: drawn procedurally or loaded as an image.
+export const canDrawFood = (kind) => Boolean(PAINTERS[kind] || spriteOverride(kind));
+
 export function renderSprite(kind, sizePx, isBad) {
   const canvas = document.createElement('canvas');
   canvas.width = sizePx;

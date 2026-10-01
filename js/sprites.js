@@ -102,18 +102,24 @@ export function spinStrip(img, steps) {
 // ---------- PNG overrides ----------
 // A theme with `art.spriteDir` (İTÜ: assets/itu/) can swap the drawn
 // characters and thrown food for PNGs. Every file is optional: whatever is
-// missing keeps its procedural drawing. Names (without .png):
+// missing keeps its procedural drawing. Names (without extension):
 export const SPRITE_NAMES = Object.freeze([
   'chef', 'chef-leader',
   'eater-1', 'eater-2', 'eater-3', 'eater-big', 'boss',
   'tomato', 'cheese', 'pepperoni', 'mushroom', 'olive', 'basil',
+  'potato', // image-only food: no drawn fallback, thrown only when its file loaded
+  'bee-1', 'bee-2', // decorative bee: wings-up / wings-down frame (both needed), facing left
 ]);
 const overrides = new Map();
 
-// Resolves once every file has loaded or failed (a missing file is not an error).
-export function loadSpriteOverrides(dir) {
-  if (!dir) return Promise.resolve();
-  return Promise.all(SPRITE_NAMES.map((name) => new Promise((resolve) => {
+// Only the names listed in the theme's `art.sprites` are requested, so a
+// theme without PNGs makes no requests (no 404s in the console).
+// `ext` is the file type (İTÜ uses 'webp': ~250 KB for all 14 instead of ~2 MB).
+// Resolves once every listed file has loaded or failed.
+export function loadSpriteOverrides(dir, names = [], ext = 'png') {
+  const wanted = names.filter((n) => SPRITE_NAMES.includes(n));
+  if (!dir || !wanted.length) return Promise.resolve();
+  return Promise.all(wanted.map((name) => new Promise((resolve) => {
     const img = new Image();
     img.decoding = 'async';
     img.onload = () => {
@@ -121,7 +127,7 @@ export function loadSpriteOverrides(dir) {
       resolve();
     };
     img.onerror = () => resolve();
-    img.src = `${dir}${name}.png`;
+    img.src = `${dir}${name}.${ext}`;
   })));
 }
 

@@ -7,7 +7,7 @@ import {
   SQUAD, applyGate, gateLabel, isGoodGate, gateSide, formation, squadRadius, squadReach, volleyDamage,
   contactLoss, speedAt, pickSegment, blockReward, crowdScore, dragToX, ROUND, roundLeft, isFinalStretch,
 } from './squad-logic.js';
-import { buildSpriteCache } from './art.js';
+import { buildSpriteCache, canDrawFood } from './art.js';
 import { buildBillboard, buildSign, renderSky, renderStadium, GROUNDS } from './scenery.js';
 import { createBees } from './bees.js';
 import { createLabelCache } from './labels.js';
@@ -16,6 +16,7 @@ import { createFx } from './fx.js';
 import { createGround } from './ground.js';
 import { createOverlays } from './overlays.js';
 import { createMemo, shadowSprite, spinStrip, SPIN_PAD } from './sprites.js';
+import { FONT } from './fonts.js';
 
 const MAX_DPR = 2;
 const MIN_DPR = 1;
@@ -37,7 +38,10 @@ const STEER_RATE = 18;
 const MAX_DT = 1 / 30;
 const COLORS = { gold: '#ffd23f', red: '#ff3131', ink: '#3a1d10', green: '#2bb673', food: '#ffb100' };
 const BUBBLE = { life: 2.6, gap: 1.2, idleEvery: 8.5 };
-const FONT = 'ui-rounded, system-ui, -apple-system, sans-serif';
+// Themes with `scene.crisp` (İTÜ) render at the screen's own sharpness up to
+// 2× even on large windows, so text on gates/signs/cards is not upscaled and
+// blurry. Slow devices still step down via watchPerf().
+const CRISP_FLOOR = 2;
 const FOOD = ['tomato', 'cheese', 'pepperoni', 'mushroom', 'olive', 'basil'];
 const SQUAD_Z = 2.2;
 const LANE_MAX = 180; // px; lane width also scales with height so landscape/short screens fit
@@ -107,7 +111,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
   const groundLayer = createGround(ground, { xAt, yAt });
 
   function pickDpr(w, h) {
-    const budget = Math.sqrt(PIXEL_BUDGET / (w * h));
+    const budget = Math.max(Math.sqrt(PIXEL_BUDGET / (w * h)), scene.crisp ? CRISP_FLOOR : 0);
     return Math.max(MIN_DPR, Math.min(window.devicePixelRatio || 1, dprCap, budget));
   }
 
@@ -145,15 +149,19 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
     const sky = scene.sky === 'stadium' ? renderStadium(W, horizonY, adpr) : renderSky(W, horizonY, adpr);
     backdrop = groundLayer.renderBackdrop(sky, W, H, horizonY, groundY, adpr, ctx);
     bees?.resize(W, horizonY * 0.55, H * 0.55, laneW * 0.2, adpr);
-    const food = buildSpriteCache(FOOD, Math.round(laneW * 0.26 * adpr), () => false);
-    spins = FOOD.map((k) => spinStrip(food[k], SPIN_STEPS));
+    // Theme food list (İTÜ adds potato); kinds with neither a drawing nor a
+    // loaded image are skipped so a missing file never breaks the throw.
+    const kinds = (theme?.art?.food || FOOD).filter((k) => canDrawFood(k));
+    const food = buildSpriteCache(kinds, Math.round(laneW * 0.26 * adpr), () => false);
+    spins = kinds.map((k) => spinStrip(food[k], SPIN_STEPS));
     shadowImg = shadowSprite(SHADOW, adpr);
     art = buildCrowdSprites(laneW, adpr, places, theme?.art);
     const ads = places.map((p) => buildBillboard(p.img, p.label, t('boardCta'), laneW, adpr));
     const signs = (theme?.signs?.[locale] || []).map((lines) => buildSign(lines, laneW, adpr));
     // Alternate feast ads with event signs: ad, sign, ad, sign…
     boardSprites = ads.flatMap((ad, i) => (signs.length ? [ad, signs[i % signs.length]] : [ad]));
-    tutLines = [t('tutTime'), t('tutDrag'), t('tutGates'), t('tutFeed')];
+    // Themes can show a shorter tutorial (İTÜ: two lines in one card).
+    tutLines = (theme?.tutorial?.lines || ['tutTime', 'tutDrag', 'tutGates', 'tutFeed']).map((k) => t(k));
     fx.warm('😋', '#ffffff', false); // the most common popup, ready before the first kill
     for (let i = 0; i < entities.length; i++) {
       const e = entities[i];
@@ -265,7 +273,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
       b.x = s.sx + slot.dx;
       b.z = SQUAD_Z + slot.dz + 0.3;
       b.dmg = dmg;
-      b.kind = Math.floor(Math.random() * FOOD.length);
+      b.kind = Math.floor(Math.random() * spins.length);
       b.spin = Math.random() * 6.28;
     }
   }
@@ -297,11 +305,17 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
   }
 
   const vibrate = (ms) => { if (navigator.vibrate) navigator.vibrate(ms); };
-  const squadTopY = () => yAt(SQUAD_Z) - laneW * scaleAt(SQUAD_Z) * 0.75;
+  // Bigger chefs (theme art.chefScale) push the count banner / bubble up with them.
+  const chefScale = theme?.art?.chefScale || 1;
+  const squadTopY = () => yAt(SQUAD_Z) - laneW * scaleAt(SQUAD_Z) * 0.75 * chefScale;
+
+  // Squad cap: 999 in the base game, raised by themes (İTÜ: 99 999) so the
+  // counter keeps climbing past 999.
+  const maxSquad = theme?.maxSquad || SQUAD.maxCount;
 
   // ---------- outcomes ----------
   function setCount(next) {
-    s.count = Math.max(0, Math.min(SQUAD.maxCount, next));
+    s.count = Math.max(0, Math.min(maxSquad, next));
     s.peak = Math.max(s.peak, s.count);
     s.bumpT = 0.25;
     if (s.count <= 0) finish('squad');
@@ -358,7 +372,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
     const before = s.count;
     e.taken = side; // only the chosen panel breaks; the other one rolls on past the squad
     const good = isGoodGate(gate);
-    setCount(applyGate(before, gate));
+    setCount(applyGate(before, gate, maxSquad));
     if (good) sfx.bonus();
     else sfx.hurt();
     vibrate(good ? 20 : 70);
@@ -382,7 +396,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
     emitHud();
     onEnd({
       score: s.score, fed: s.fed, peak: s.peak, discovered: s.discovered,
-      distance: Math.floor(s.dist), reason,
+      distance: Math.floor(s.dist), reason, seconds: Math.floor(s.elapsed),
     });
   }
 
@@ -521,7 +535,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
       ctx.fillRect(-20, -20, W + 40, H + 40);
       ctx.globalAlpha = 1;
     }
-    if (s.countdown > 0) overlays.drawCountdown(ctx, s.countdown, W / 2, H * 0.3, tutLines);
+    if (s.countdown > 0) overlays.drawCountdown(ctx, s.countdown, W / 2, H * 0.3, tutLines, Boolean(theme?.tutorial?.card));
   }
 
   function drawWorld() {

@@ -17,9 +17,10 @@ export const INTRO_STEPS = Object.freeze([
 
 export const REWARD_KEYS = Object.freeze([
   'introLead', 'introPromise', 'introHot', 'introTail',
-  'readyMain', 'readyHot', 'readyPlay',
+  'readyMain', 'readyHot', 'readyPlay', 'readyBubbles',
   'boxTitle', 'boxHint', 'boxOpen',
-  'rewardTitle', 'rewardSub', 'rewardDownload', 'rewardTagline', 'rewardPlaceCampus', 'rewardMore', 'rewardScore',
+  'rewardTitle', 'rewardSub', 'rewardDownload', 'rewardTagline', 'rewardPlaceCampus', 'rewardMore',
+  'retryTitle', 'retrySub', 'retryButton', 'retryTip', 'rewardScore',
 ]);
 
 export function pickFlow(theme) {

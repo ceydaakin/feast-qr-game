@@ -2,9 +2,10 @@
 // Every sprite is drawn at its "z = 0" (closest) size in CSS px × dpr; the engine
 // only scales them with drawImage.
 
+import { FONT } from './fonts.js';
+
 const INK = '#3a1d10';
 const RED = '#ff3131';
-const FONT = 'ui-rounded, system-ui, -apple-system, sans-serif';
 
 function makeCanvas(w, h, dpr) {
   const c = document.createElement('canvas');

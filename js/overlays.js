@@ -129,12 +129,46 @@ export function createOverlays({ font, colors }) {
     ctx.drawImage(img, x - w / 2, y - h / 2, w, h);
   }
 
-  function drawCountdown(ctx, countdown, cx, cy, lines) {
+  // Tutorial as one tidy card (themes with `tutorialCard`): white rounded
+  // panel, ink border, one short line per row. Rendered once per resize.
+  function cardSprite(lines) {
+    return texts.get(`card${lines.join('|')}`, () => {
+      const f = `800 16px ${font}`;
+      const lineH = 26;
+      let textW = 0;
+      for (let i = 0; i < lines.length; i++) textW = Math.max(textW, measure(lines[i], f));
+      const w = textW + 36; const h = lines.length * lineH + 22; const pad = 6;
+      const { c, ctx } = makeCanvas(w + pad * 2, h + pad * 2 + 4, dpr);
+      rr(ctx, pad, pad + 4, w, h, 18); // offset "shadow"
+      ctx.fillStyle = colors.ink;
+      ctx.fill();
+      rr(ctx, pad, pad, w, h, 18);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = colors.ink;
+      ctx.stroke();
+      ctx.font = f;
+      ctx.fillStyle = colors.ink;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let i = 0; i < lines.length; i++) ctx.fillText(lines[i], pad + w / 2, pad + 11 + lineH * (i + 0.5));
+      c.cssW = w + pad * 2;
+      c.cssH = h + pad * 2 + 4;
+      return c;
+    });
+  }
+
+  function drawCountdown(ctx, countdown, cx, cy, lines, card = false) {
     const n = Math.ceil(countdown);
     const frac = countdown - Math.floor(countdown);
     ctx.globalAlpha = Math.min(1, frac * 3 + 0.2);
     blitCentred(ctx, digitSprite(n), cx, cy, (1 + frac * 0.6) / DIGIT_MAX_POP);
     ctx.globalAlpha = 1;
+    if (card) {
+      if (lines.length) blitCentred(ctx, cardSprite(lines), cx, cy + 112, 1);
+      return;
+    }
     for (let i = 0; i < lines.length; i++) blitCentred(ctx, lineSprite(lines[i]), cx, cy + 90 + i * 28, 1);
   }
 

@@ -1,27 +1,27 @@
-# İTÜ sprite PNGs (optional)
+# İTÜ character & food images
 
-Put PNGs in this folder to replace the drawn characters and thrown food in the
-`?src=itu` game. Every file is optional: anything missing keeps its current drawing.
-The layout doesn't change, because each PNG is fitted into the same box the drawing used.
+These images replace the drawn characters and thrown food in the `?src=itu`
+game. They are listed in `js/themes.js` (`art.sprites`, `spriteExt: 'webp'`);
+only listed names are loaded.
 
-Rules for all files: transparent background, PNG, character's feet on the bottom edge.
+| File | What it is |
+|---|---|
+| `chef.webp` | Squad chef, seen from behind |
+| `chef-leader.webp` | Front chef (star on the hat) |
+| `eater-1.webp` | Hungry customer: bearded man |
+| `eater-2.webp` | Hungry customer: plaid shirt |
+| `eater-3.webp` | Hungry customer: red-haired woman |
+| `eater-big.webp` | Big "OBUR" customer |
+| `boss.webp` | "Dev Obur" boss |
+| `tomato.webp` `cheese.webp` `pepperoni.webp` `mushroom.webp` `olive.webp` `basil.webp` `potato.webp` | Thrown food (it spins in flight) |
 
-| File | What it is | Recommended size |
-|---|---|---|
-| `chef.png` | Squad chef, **seen from behind** (runs away from the camera) | 320×400 |
-| `chef-leader.png` | Leader chef at the front of the squad (falls back to `chef.png`) | 320×400 |
-| `eater-1.png` | Hungry customer, facing the camera | 320×400 |
-| `eater-2.png` | Second customer variant (falls back to `eater-1.png`) | 320×400 |
-| `eater-3.png` | Third customer variant (falls back to `eater-1.png`) | 320×400 |
-| `eater-big.png` | Big "OBUR" customer | 480×600 |
-| `boss.png` | "Dev Obur" boss | 640×800 |
-| `tomato.png` | Thrown food (it spins in flight) | 128×128 |
-| `cheese.png` | Thrown food | 128×128 |
-| `pepperoni.png` | Thrown food | 128×128 |
-| `mushroom.png` | Thrown food | 128×128 |
-| `olive.png` | Thrown food | 128×128 |
-| `basil.png` | Thrown food | 128×128 |
+The originals had green backgrounds; they were cut out, cropped and
+resized (characters 360 px tall, OBUR 480, boss 640, food 160) and saved as
+WebP with transparency (~250 KB for all 14).
 
-Characters use a 4:5 (portrait) box. Food uses a square box.
-The "İTÜ" text on the customers' bibs is part of the drawing, so if you want it,
-include it in your PNG.
+## Replacing one
+
+Transparent background, character's feet on the bottom edge, saved as
+`.webp` with the same name. Any name you remove from `art.sprites` goes back
+to its drawn version (potato is image-only: without its file it is simply not
+thrown).

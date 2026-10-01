@@ -1,5 +1,29 @@
 /* Reward flow (?src=itu): intro, mystery box, reward screen. Tokens come from styles.css. */
 
+/* ---------- font (İTÜ) ----------
+   Baloo 2 ExtraBold (SIL OFL, assets/fonts/), one file per subset: latin has
+   ç ö ü ı, latin-ext has ğ ş İ. Declared for weights 600–900 so every bold
+   text uses it. Only downloaded when html[data-theme="itu"] uses it; the
+   base game keeps the system font. Canvas text uses it via js/fonts.js. */
+@font-face {
+  font-family: "Baloo 2";
+  src: url("assets/fonts/baloo-2-latin-800-normal.woff2") format("woff2");
+  font-weight: 600 900;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Baloo 2";
+  src: url("assets/fonts/baloo-2-latin-ext-800-normal.woff2") format("woff2");
+  font-weight: 600 900;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+html[data-theme="itu"] {
+  --font: "Baloo 2", ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
 /* ---------- intro ---------- */
 #intro, #box { --orange: #ff8a00; }
 .intro { background: var(--cream); cursor: pointer; overflow: hidden; }
@@ -56,12 +80,26 @@
 @keyframes vortexOut { to { transform: scale(.02) rotate(540deg); } }
 @keyframes qOut { to { transform: scale(0) rotate(540deg); opacity: 0; } }
 
-/* 3: scribble wipe */
-[data-frame="scribble"] {
-  background: repeating-linear-gradient(62deg, var(--ink) 0 6px, var(--cream) 7px 22px);
-  animation: scribble var(--step-ms, .8s) steps(8) both;
+/* 3: rings burst out of the centre where the spiral vanished: ink, feast red,
+   gold, then cream, which leaves a clean cream page for the logo to pop onto.
+   (The step keeps its old "scribble" id so the config/tests stay the same.) */
+[data-frame="scribble"] { overflow: hidden; }
+[data-frame="scribble"] i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 160vmax;
+  height: 160vmax;
+  margin: -80vmax 0 0 -80vmax;
+  border-radius: 50%;
+  transform: scale(0);
+  animation: ringBurst calc(var(--step-ms, .8s) * .62) cubic-bezier(.3, .7, .35, 1) both;
 }
-@keyframes scribble { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+[data-frame="scribble"] i:nth-child(1) { background: var(--ink); }
+[data-frame="scribble"] i:nth-child(2) { background: var(--red); animation-delay: calc(var(--step-ms, .8s) * .12); }
+[data-frame="scribble"] i:nth-child(3) { background: var(--gold); animation-delay: calc(var(--step-ms, .8s) * .24); }
+[data-frame="scribble"] i:nth-child(4) { background: var(--cream); animation-delay: calc(var(--step-ms, .8s) * .36); }
+@keyframes ringBurst { to { transform: scale(1); } }
 
 /* 4: feast leads, İTÜ students are addressed underneath */
 .intro-brand { display: grid; justify-items: center; gap: 10px; animation: brandPop 1s cubic-bezier(.2, .9, .3, 1.4) both; }
@@ -94,11 +132,23 @@
 .intro-ready h1 { font-size: clamp(34px, 10vw, 56px); }
 .intro-hot { font-size: clamp(34px, 10vw, 56px); font-weight: 900; }
 .intro-ready .btn-primary { margin-top: 24px; font-size: 28px; }
+/* the chef tossing food, so BAŞLA has a face and some energy */
+.intro-chef {
+  justify-self: center;
+  width: auto;
+  height: clamp(110px, 24dvh, 220px);
+  margin: 4px 0;
+  filter: drop-shadow(0 6px 0 rgba(58, 29, 16, .15));
+  animation: chefIn .6s cubic-bezier(.2, .9, .3, 1.4) both, bob 2.2s ease-in-out .6s infinite;
+}
+@keyframes chefIn { from { scale: .3; opacity: 0; } }
+.intro-ready h1, .reward-title, .reward-sub { text-wrap: balance; }
 
 /* Short/landscape: size the headlines by height too, so longer (English) copy
    doesn't wrap to two lines each and push BAŞLA off-screen. */
 @media (max-height: 500px) {
   .intro-ready { gap: 2px; max-width: 560px; }
+  .intro-chef { display: none; } /* no room on landscape phones */
   .intro-ready h1, .intro-hot { font-size: min(10vw, 11dvh); }
   .intro-lead { font-size: min(4.5vw, 5.5dvh); }
   .intro-ready .btn-primary { margin-top: 10px; padding: 10px; font-size: min(28px, 8dvh); }
@@ -534,4 +584,130 @@
   .reward-sub { font-size: min(16px, 4.4dvh); }
   .reward-download { font-size: min(24px, 7dvh); padding: min(10px, 2.4dvh) 16px; }
   .reward-tagline { display: none; }
+}
+
+/* ---------- polish (İTÜ flow) ---------- */
+/* Keyboard focus: visible ring on every control in the flow (none before). */
+:is(#intro, #box, #reward) :is(button, a):focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 4px;
+  box-shadow: 0 0 0 7px var(--gold);
+}
+/* Box hint was 60 % opacity on cream: too faint to read. */
+#box .hint { opacity: 1; font-size: 15px; color: var(--ink); }
+/* Hover feedback on the download page. */
+.reward-download:hover { filter: brightness(1.05) saturate(1.1); }
+.link-btn:hover { color: var(--red-deep); }
+/* The gift pops in when the download page opens (scale, so it does not
+   fight the bobbing transform). */
+.reward-screen.is-active .gift-open { animation: giftIn .7s cubic-bezier(.2, .9, .3, 1.5) both, giftBob 2.4s ease-in-out .7s infinite; }
+@keyframes giftIn { from { scale: .2; opacity: 0; } }
+
+/* ---------- retry ("Az kaldı!") ----------
+   Lost before 45 s: same warm page as the download screen, the gift still
+   locked, one big TEKRAR DENE button that starts a new round at once. */
+.retry-screen {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background:
+    radial-gradient(circle at 100% 0, #ffd0d4 0 14%, transparent 14.5%),
+    radial-gradient(circle at 0 100%, #ffe39a 0 13%, transparent 13.5%),
+    radial-gradient(ellipse at 50% 42%, #fff1bf 0%, var(--cream) 62%);
+}
+.retry-wrap { width: 100%; max-width: 380px; display: grid; justify-items: center; gap: clamp(8px, 1.8dvh, 14px); text-align: center; }
+.retry-gift { position: relative; font-size: clamp(72px, 16dvh, 120px); line-height: 1; animation: retryShake 2.4s ease-in-out infinite; }
+.retry-lock {
+  position: absolute;
+  right: -.12em;
+  bottom: -.05em;
+  font-size: .42em;
+  filter: drop-shadow(0 2px 0 rgba(58, 29, 16, .25));
+}
+.retry-title { margin: 0; font: 900 clamp(34px, min(11vw, 7dvh), 52px)/1 var(--font); color: var(--ink); text-wrap: balance; }
+.retry-sub { margin: 0; max-width: 28ch; font-weight: 800; font-size: clamp(15px, min(4.4vw, 2.6dvh), 19px); line-height: 1.3; color: var(--ink); text-wrap: balance; }
+.retry-btn { margin-top: 6px; font-size: clamp(24px, min(7vw, 4.4dvh), 30px); }
+.retry-tip { margin: 0; padding: 6px 12px; border: 2px dashed rgba(58, 29, 16, .35); border-radius: 12px; font-weight: 800; font-size: 13.5px; color: var(--ink); }
+.retry-score { margin: 0; font-weight: 800; font-size: 13px; color: rgba(58, 29, 16, .6); }
+#retry.is-active .retry-wrap > * { animation: retryIn .5s cubic-bezier(.2, .9, .3, 1.4) both; }
+#retry.is-active .retry-wrap > :nth-child(2) { animation-delay: .08s; }
+#retry.is-active .retry-wrap > :nth-child(3) { animation-delay: .16s; }
+#retry.is-active .retry-wrap > :nth-child(4) { animation: retryIn .5s cubic-bezier(.2, .9, .3, 1.4) .24s both, pulse 1.6s ease-in-out .8s infinite; }
+#retry.is-active .retry-wrap > :nth-child(n + 5) { animation-delay: .32s; }
+#retry.is-active .retry-gift { animation: retryIn .5s cubic-bezier(.2, .9, .3, 1.4) both, retryShake 2.4s ease-in-out .5s infinite; }
+#retry:not(.is-active) *, #retry:not(.is-active) *::before { animation-play-state: paused; }
+@keyframes retryIn { from { opacity: 0; translate: 0 14px; } }
+@keyframes retryShake { 0%, 70%, 100% { rotate: 0deg; } 76% { rotate: -8deg; } 82% { rotate: 7deg; } 88% { rotate: -4deg; } 94% { rotate: 2deg; } }
+@media (orientation: landscape) and (max-height: 500px) {
+  .retry-gift { font-size: min(80px, 20dvh); }
+  .retry-tip { display: none; }
+}
+
+/* ---------- BAŞLA screen: faint thought bubbles ----------
+   The everyday questions feast answers, drifting around the edges behind the
+   content. Low opacity + no shadow so they fill the page without competing
+   with the logo, the chef or BAŞLA. */
+/* The bubble area is capped at 940 px and centred, so on a wide PC screen the
+   bubbles stay close around the content instead of drifting to the far edges
+   (on phones it is simply the full screen). Vertically it hugs the content too. */
+.ready-bubbles {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  max-width: 940px;
+  max-height: 820px;
+  margin: auto;
+  overflow: hidden;
+  pointer-events: none;
+}
+@media (min-width: 900px) {
+  .ready-bubble { font-size: 14.5px; padding: 8px 14px; max-width: 250px; }
+}
+.intro-ready > :not(.ready-bubbles) { position: relative; z-index: 1; }
+.ready-bubble {
+  position: absolute;
+  max-width: 38vw;
+  padding: 7px 12px;
+  border: 2px solid rgba(58, 29, 16, .55);
+  border-radius: 16px;
+  background: #fff;
+  font: 800 13px/1.2 var(--font);
+  color: var(--ink);
+  opacity: .32;
+  rotate: var(--r, 0deg);
+  animation: bubbleFloat var(--t, 6s) ease-in-out infinite alternate;
+}
+/* little tail, alternating sides */
+.ready-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -7px;
+  left: 18px;
+  width: 11px;
+  height: 11px;
+  background: #fff;
+  border: solid rgba(58, 29, 16, .55);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.ready-bubble:nth-child(even)::after { left: auto; right: 18px; }
+.ready-bubble:nth-child(1) { left: 3%; top: 5%; --r: -4deg; --t: 6.5s; }
+.ready-bubble:nth-child(2) { right: 3%; top: 12%; --r: 3deg; --t: 7s; }
+.ready-bubble:nth-child(3) { left: 2%; top: 31%; --r: 3deg; --t: 5.5s; }
+.ready-bubble:nth-child(4) { right: 2%; top: 38%; --r: -3deg; --t: 6.8s; }
+.ready-bubble:nth-child(5) { left: 4%; top: 55%; --r: -2deg; --t: 7.4s; }
+.ready-bubble:nth-child(6) { right: 3%; top: 61%; --r: 4deg; --t: 6.1s; }
+.ready-bubble:nth-child(7) { left: 3%; bottom: 7%; --r: 3deg; --t: 6.9s; }
+.ready-bubble:nth-child(8) { right: 4%; bottom: 4%; --r: -4deg; --t: 5.8s; }
+@keyframes bubbleFloat { to { translate: 0 -10px; } }
+.intro:not(.is-active) .ready-bubble { animation-play-state: paused; }
+/* Narrow phones: smaller bubbles; landscape phones: no room, hide them. */
+@media (max-width: 420px) {
+  .ready-bubble { font-size: 11.5px; padding: 6px 10px; max-width: 42vw; opacity: .28; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .ready-bubbles { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ready-bubble { animation: none; }
 }

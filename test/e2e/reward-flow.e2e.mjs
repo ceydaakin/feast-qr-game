@@ -129,8 +129,10 @@ try {
     await page.close();
   });
 
-  await check('returning visitor lands on the ready screen', async () => {
+  await check('returning visitor sees the spiral intro again; Enter skips it', async () => {
     const page = await open(mobile);
+    assert.notEqual(await page.getAttribute('#intro', 'data-step'), 'ready');
+    await page.keyboard.press('Enter');
     assert.equal(await page.getAttribute('#intro', 'data-step'), 'ready');
     await page.close();
   });
@@ -170,11 +172,20 @@ try {
 
   await check('full İTÜ round → box opens once on double tap → reward', async () => {
     const page = await open(mobile);
+    await page.click('#intro', { position: { x: 5, y: 5 } }); // skip the intro
     await page.click('#btn-reward-play', { force: true });
     assert.equal(await active(page), 'play');
     await page.waitForTimeout(1_000);
     assert.deepEqual(await hiddenAnimations(page), [], 'hidden animations during İTÜ round');
-    await waitForScreen(page, 'box', 60_000);
+    // Untouched, the squad may survive 45 s (→ box) or get wiped out (→ retry).
+    await page.waitForFunction(() => ['box', 'retry'].includes(document.querySelector('.screen.is-active')?.id), null, { timeout: 60_000 });
+    if (await active(page) === 'retry') {
+      assert.match(await page.textContent('#retry-sub'), /\d+/, 'retry page shows the seconds survived');
+      await page.click('#retry .retry-btn');
+      assert.equal(await active(page), 'play', 'TEKRAR DENE starts a new round');
+      await page.close();
+      return;
+    }
     await page.click('#btn-box', { force: true });
     await page.click('#btn-box', { force: true });
     await waitForScreen(page, 'reward', 5_000);

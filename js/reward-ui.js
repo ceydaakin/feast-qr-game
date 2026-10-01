@@ -30,8 +30,22 @@ function ensureSpiral(root) {
   if (host && !host.childElementCount) host.innerHTML = spiralSvg();
 }
 
-export function playIntro({ root, steps, onStep = () => {} }) {
+// Background of the BAŞLA screen: the questions feast answers, as faint
+// speech bubbles drifting around the edges. Positions live in reward.css.
+function ensureBubbles(root, lines) {
+  const host = root.querySelector('.ready-bubbles');
+  if (!host || host.childElementCount || !Array.isArray(lines)) return;
+  host.append(...lines.map((text) => {
+    const el = document.createElement('span');
+    el.className = 'ready-bubble';
+    el.textContent = text;
+    return el;
+  }));
+}
+
+export function playIntro({ root, steps, onStep = () => {}, bubbles = [] }) {
   ensureSpiral(root);
+  ensureBubbles(root, bubbles);
   const seq = createSequencer({
     steps,
     onStep: (id) => {
@@ -46,6 +60,15 @@ export function playIntro({ root, steps, onStep = () => {} }) {
   root.addEventListener('click', (e) => {
     if (!e.target.closest('button')) seq.skip();
   });
+  // Keyboard: Enter / Space / Escape skip too, then BAŞLA gets focus.
+  const onKey = (e) => {
+    if (!root.classList.contains('is-active') || seq.current() === 'ready') return;
+    if (!['Enter', ' ', 'Escape'].includes(e.key)) return;
+    e.preventDefault();
+    seq.skip();
+    root.querySelector('[data-frame="ready"] button')?.focus();
+  };
+  document.addEventListener('keydown', onKey);
   seq.start();
   return seq;
 }

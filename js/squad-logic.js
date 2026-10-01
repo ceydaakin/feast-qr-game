@@ -32,13 +32,14 @@ export const SQUAD = Object.freeze({
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 
-export function applyGate(count, gate) {
+// `max` lets a theme raise the squad cap (İTÜ: 99 999 instead of 999).
+export function applyGate(count, gate, max = SQUAD.maxCount) {
   let next = count;
   if (gate.op === 'add') next = count + gate.value;
   else if (gate.op === 'sub') next = count - gate.value;
   else if (gate.op === 'mul') next = count * gate.value;
   else if (gate.op === 'div') next = Math.ceil(count / gate.value);
-  return clamp(Math.round(next), 1, SQUAD.maxCount);
+  return clamp(Math.round(next), 1, max);
 }
 
 const SYMBOL = { add: '+', sub: '-', mul: '×', div: '÷' };

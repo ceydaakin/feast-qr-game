@@ -7,8 +7,8 @@ export const REWARD_CONFIG = Object.freeze({
   timings: Object.freeze({ mystery: 2000, swirl: 1500, scribble: 800, brand: 1500, promise: 2500 }),
   boxOpenMs: 1400, // shake builds up → flash → burst + particles → reward screen
 
-  // Round lost before the 45 s ran out: 'box' = give the box anyway, 'retry' = back to BAŞLA.
-  onLose: 'box',
+  // Round lost before the 45 s ran out: 'box' = give the box anyway, 'retry' = "Az kaldı!" page with TEKRAR DENE.
+  onLose: 'retry',
 
   // Where the yellow "feast'i indir" button on the download page goes.
   downloadUrl: 'https://get.feast.tr',
@@ -42,6 +42,17 @@ export const REWARD_CONFIG = Object.freeze({
       readyMain: '45 sn dayan',
       readyHot: 'ÖDÜLÜ AL',
       readyPlay: 'BAŞLA ▶',
+      // Faint thought bubbles behind the BAŞLA screen (the questions feast answers).
+      readyBubbles: [
+        'Bugün ne yesek? 🤔',
+        'Kampüste nerede yenir?',
+        'Kahve ne içsek? ☕',
+        'Acıktım, napsak?',
+        'Nereye gitsek?',
+        'Kadıköy\'de nerede yesek?',
+        'Beşiktaş\'ta pizza nerede güzel? 🍕',
+        'Ders çıkışı ne yiyoruz?',
+      ],
       boxTitle: 'Sürpriz kutun geldi!',
       boxHint: 'Kutuya dokun, aç 👆',
       boxOpen: 'Ödül kutusunu aç',
@@ -52,6 +63,11 @@ export const REWARD_CONFIG = Object.freeze({
       rewardTagline: 'Küçük bir adım, büyük bir lezzet',
       rewardPlaceCampus: '📍 {campus}', // Kadıköy and Beşiktaş are plain text in index.html
       rewardMore: 've yakında daha fazlası ✨',
+      // Retry page (lost before the 45 s ran out)
+      retryTitle: 'Az kaldı!',
+      retrySub: '{seconds} saniye dayandın. Ödül için 45 saniyeyi tamamla!',
+      retryButton: 'TEKRAR DENE ▶',
+      retryTip: 'İpucu: yeşil kapılardan geç, kırmızılardan kaç!',
       rewardScore: 'Skorun: {score}',
     },
     en: {
@@ -62,6 +78,16 @@ export const REWARD_CONFIG = Object.freeze({
       readyMain: 'Survive 45 seconds',
       readyHot: 'CLAIM THE REWARD',
       readyPlay: 'START ▶',
+      readyBubbles: [
+        'What should we eat today? 🤔',
+        'Where to eat on campus?',
+        'Coffee, but where? ☕',
+        'I\'m hungry, now what?',
+        'Where should we go?',
+        'Where to eat in Kadıköy?',
+        'Best pizza in Beşiktaş? 🍕',
+        'Food after class?',
+      ],
       boxTitle: 'A surprise box for you!',
       boxHint: 'Tap the box to open 👆',
       boxOpen: 'Open the reward box',
@@ -71,6 +97,10 @@ export const REWARD_CONFIG = Object.freeze({
       rewardTagline: 'A small step, a big feast',
       rewardPlaceCampus: '📍 {campus}',
       rewardMore: 'and more coming soon ✨',
+      retryTitle: 'So close!',
+      retrySub: 'You lasted {seconds} seconds. Make it to 45 to unlock the reward!',
+      retryButton: 'TRY AGAIN ▶',
+      retryTip: 'Tip: go through the green gates, dodge the red ones!',
       rewardScore: 'Your score: {score}',
     },
   }),

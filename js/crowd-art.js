@@ -3,10 +3,10 @@
 
 import { gateLabel, isGoodGate } from './squad-logic.js';
 import { spriteOverride, drawContain } from './sprites.js';
+import { FONT } from './fonts.js';
 
 const INK = '#3a1d10';
 const RED = '#ff3131';
-const FONT = 'ui-rounded, system-ui, -apple-system, sans-serif';
 const GATE_COLORS = { good: ['rgba(43,182,115,0.78)', '#1d8f58'], bad: ['rgba(255,49,49,0.78)', '#c01818'] };
 
 function makeCanvas(w, h, dpr) {
@@ -257,20 +257,23 @@ const DEFAULT_SHIRTS = ['#7b61ff', '#2a9df4', '#ff8a00'];
 
 // `theme` (optional) re-labels the crowd: e.g. İTÜ shirts and a "FİNAL" boss.
 export function buildCrowdSprites(laneW, dpr, places, theme = {}) {
-  const member = Math.round(laneW * 0.46);
+  // `chefScale` (İTÜ: 1.25) draws the player's chef squad bigger.
+  const member = Math.round(laneW * 0.46 * (theme.chefScale || 1));
   const shirts = theme.shirts || DEFAULT_SHIRTS;
   const label = theme.eaterLabel;
+  // `crowdScale` (İTÜ) draws the hungry customers, OBUR and boss bigger.
+  const cs = theme.crowdScale || 1;
   return {
     chef: chefBack(member, dpr, false),
     leader: chefBack(member * 1.3, dpr, true),
     // PNG overrides (assets/itu/…): eater-2/3 fall back to eater-1 if only one is given.
     eaters: [
-      eater(laneW * 0.62, dpr, { shirt: shirts[0], label, png: spriteOverride('eater-1') }),
-      eater(laneW * 0.62, dpr, { shirt: shirts[1], skin: '#d4e8a8', label, png: spriteOverride('eater-2', 'eater-1') }),
-      eater(laneW * 0.62, dpr, { shirt: shirts[2], skin: '#bfdc9a', label, png: spriteOverride('eater-3', 'eater-1') }),
+      eater(laneW * 0.62 * cs, dpr, { shirt: shirts[0], label, png: spriteOverride('eater-1') }),
+      eater(laneW * 0.62 * cs, dpr, { shirt: shirts[1], skin: '#d4e8a8', label, png: spriteOverride('eater-2', 'eater-1') }),
+      eater(laneW * 0.62 * cs, dpr, { shirt: shirts[2], skin: '#bfdc9a', label, png: spriteOverride('eater-3', 'eater-1') }),
     ],
-    big: eater(laneW * 1.1, dpr, { shirt: '#3a1d10', skin: '#b6d58f', big: true, label: theme.bigLabel, png: spriteOverride('eater-big') }),
-    boss: eater(laneW * 2.1, dpr, { shirt: RED, skin: '#a9cf7f', big: true, label: theme.bossLabel, png: spriteOverride('boss') }),
+    big: eater(laneW * 1.1 * cs, dpr, { shirt: '#3a1d10', skin: '#b6d58f', big: true, label: theme.bigLabel, png: spriteOverride('eater-big') }),
+    boss: eater(laneW * 2.1 * cs, dpr, { shirt: RED, skin: '#a9cf7f', big: true, label: theme.bossLabel, png: spriteOverride('boss') }),
     places: places.map((p) => lockedPlace(p.img, p.label, laneW, dpr)),
   };
 }

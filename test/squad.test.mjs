@@ -23,6 +23,11 @@ test('applyGate never kills the whole squad and respects the cap', () => {
   assert.equal(applyGate(SQUAD.maxCount - 1, { op: 'mul', value: 10 }), SQUAD.maxCount);
 });
 
+test('a theme can raise the squad cap so the counter goes past 999', () => {
+  assert.equal(applyGate(998, { op: 'add', value: 50 }, 99999), 1048);
+  assert.equal(applyGate(50000, { op: 'mul', value: 3 }, 99999), 99999);
+});
+
 test('gateLabel and isGoodGate describe the gate', () => {
   assert.equal(gateLabel({ op: 'add', value: 5 }), '+5');
   assert.equal(gateLabel({ op: 'sub', value: 4 }), '-4');

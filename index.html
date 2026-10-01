@@ -80,7 +80,8 @@
     <div class="intro-vortex" aria-hidden="true"><div class="intro-vortex-spin"></div></div>
     <div class="intro-frame" data-frame="mystery"><span class="intro-q" aria-hidden="true">?</span></div>
     <div class="intro-frame" data-frame="swirl" aria-hidden="true"><span class="intro-q" aria-hidden="true">?</span></div>
-    <div class="intro-frame" data-frame="scribble" aria-hidden="true"></div>
+    <!-- 3: feast-coloured rings burst out of the point the spiral collapsed into -->
+    <div class="intro-frame" data-frame="scribble" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
     <div class="intro-frame" data-frame="brand">
       <div class="intro-brand">
         <img class="intro-logo" src="assets/logo.webp" alt="feast." width="120" height="33">
@@ -97,8 +98,11 @@
       </p>
     </div>
     <div class="intro-frame intro-ready" data-frame="ready">
+      <!-- faint "what should we eat?" thought bubbles drifting behind (filled by reward-ui.js) -->
+      <div class="ready-bubbles" aria-hidden="true"></div>
       <img class="intro-logo" src="assets/logo.webp" alt="feast." width="120" height="33">
       <small class="intro-lead" data-i18n="introLead"></small>
+      <img class="intro-chef" src="assets/toss.webp" alt="" width="317" height="480">
       <h1 data-i18n="readyMain"></h1>
       <strong class="sparkle intro-hot" data-i18n="readyHot"></strong>
       <button id="btn-reward-play" class="btn btn-primary btn-pulse" type="button" data-i18n="readyPlay"></button>
@@ -119,6 +123,18 @@
       <p class="hint" data-i18n="boxHint"></p>
     </div>
     <div class="box-flash" aria-hidden="true"></div>
+  </section>
+
+  <!-- REWARD FLOW: lost before 45 s → one more try (REWARD_CONFIG.onLose = 'retry') -->
+  <section id="retry" class="screen retry-screen">
+    <div class="retry-wrap">
+      <div class="retry-gift" aria-hidden="true"><span class="retry-gift-box">🎁</span><span class="retry-lock">🔒</span></div>
+      <h2 class="retry-title" data-i18n="retryTitle"></h2>
+      <p id="retry-sub" class="retry-sub"></p>
+      <button class="btn btn-primary btn-pulse retry-btn" type="button" data-action="again" data-i18n="retryButton"></button>
+      <p class="retry-tip" data-i18n="retryTip"></p>
+      <p id="retry-score" class="retry-score"></p>
+    </div>
   </section>
 
   <!-- REWARD FLOW: unlocked reward -->

@@ -13,6 +13,7 @@ import { REWARD_CONFIG } from './reward-config.js';
 import { themeStringsWithReward } from './campus.js';
 import { playIntro, openBoxScreen, renderReward } from './reward-ui.js';
 import { loadSpriteOverrides } from './sprites.js';
+import { setGameFont, loadGameFont } from './fonts.js';
 
 const BEST_KEY = 'feast-game.best.v1';
 const MUTE_KEY = 'feast-game.muted.v1';
@@ -39,6 +40,10 @@ const flow = pickFlow(theme);
 // Reward flow copy comes from reward-config.js with ?campus= filled in (default İTÜ).
 const t = makeT(locale, flow === 'reward' ? themeStringsWithReward(theme, params.get('campus')) : theme?.strings);
 document.documentElement.lang = locale;
+// Theme hook for CSS (İTÜ: html[data-theme="itu"] switches the page font) and
+// the canvas font stack; must happen before the game builds its text sprites.
+if (theme) document.documentElement.dataset.theme = theme.id;
+setGameFont(theme?.font);
 
 function track(event, data = {}) {
   // Hook for GTM/analytics if the host page injects a dataLayer; no-op otherwise.
@@ -257,11 +262,19 @@ function showGameOver(result, best, isNewBest) {
 // Lost before time ran out: the config decides between the box anyway and a retry.
 function endRewardRound(result) {
   if (result.reason !== 'time' && REWARD_CONFIG.onLose === 'retry') {
-    track('retry_offered', { score: result.score });
-    showScreen('intro');
+    showRetry(result);
     return;
   }
   showBox(result);
+}
+
+// Squad wiped out before 45 s: no box yet, a "one more try" page whose
+// button (data-action="again") starts a new round straight away.
+function showRetry(result) {
+  track('retry_offered', { score: result.score, seconds: result.seconds });
+  $('#retry-sub').textContent = t('retrySub', { seconds: result.seconds ?? 0 });
+  $('#retry-score').textContent = t('rewardScore', { score: result.score });
+  showScreen('retry');
 }
 
 function showBox(result) {
@@ -351,6 +364,7 @@ function startRewardIntro() {
   playIntro({
     root: $('#intro'),
     steps: introPlan({ reducedMotion }), // `seen` is only tracked now; the spiral plays every visit
+    bubbles: t('readyBubbles'),
     onStep: (id) => {
       if (id !== 'ready') return;
       storage('set', INTRO_SEEN_KEY, '1');
@@ -375,7 +389,8 @@ async function boot() {
 
   const [cuisineImages] = await Promise.all([
     Promise.all(CUISINES.map((c) => loadImage(c.img))),
-    loadSpriteOverrides(theme?.art?.spriteDir), // optional PNG characters/food (İTÜ)
+    loadSpriteOverrides(theme?.art?.spriteDir, theme?.art?.sprites, theme?.art?.spriteExt), // character/food images (İTÜ)
+    loadGameFont(theme?.font), // canvas text needs the web font loaded first
   ]);
   const places = CUISINES.map((c, i) => ({ img: cuisineImages[i], label: t(`cuisine_${c.id}`) }));
   let lastScore = 0;

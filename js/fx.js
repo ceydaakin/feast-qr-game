@@ -4,9 +4,9 @@
 // only blits it (strokeText of colour emoji every frame was the #2 hotspot).
 
 import { textSprite, createMemo } from './sprites.js';
+import { FONT } from './fonts.js';
 
 const INK = '#3a1d10';
-const FONT = '900 {px}px ui-rounded, system-ui, -apple-system, sans-serif';
 const BIG_PX = 28;
 const SMALL_PX = 22;
 const BIG_POP = 1.4; // big popups start 1.4× larger; rendered at that size so they never upscale
@@ -50,7 +50,7 @@ export function createFx(ctx) {
     return sprites.get(`${text}|${color}|${big ? 1 : 0}`, () => {
       const k = big ? BIG_POP : 1;
       return textSprite(text, {
-        font: FONT, px: (big ? BIG_PX : SMALL_PX) * k, color, stroke: INK, lineWidth: LINE_W * k, dpr,
+        font: `900 {px}px ${FONT}`, px: (big ? BIG_PX : SMALL_PX) * k, color, stroke: INK, lineWidth: LINE_W * k, dpr,
       });
     });
   }
