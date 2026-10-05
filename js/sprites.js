@@ -103,7 +103,7 @@ export function spinStrip(img, steps) {
 // A theme with `art.spriteDir` (İTÜ: assets/itu/) can swap the drawn
 // characters and thrown food for PNGs. Every file is optional: whatever is
 // missing keeps its procedural drawing. Names (without extension):
-export const SPRITE_NAMES = Object.freeze([
+const SPRITE_NAMES = Object.freeze([
   'chef', 'chef-leader',
   'eater-1', 'eater-2', 'eater-3', 'eater-big', 'boss',
   'tomato', 'cheese', 'pepperoni', 'mushroom', 'olive', 'basil',

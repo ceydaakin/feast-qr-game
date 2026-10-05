@@ -45,36 +45,8 @@
 
   <button id="btn-mute" class="btn-mute" type="button" aria-pressed="false" aria-label="Ses" data-i18n-aria="sound">🔊</button>
 
-  <!-- START -->
-  <section id="start" class="screen scrollable is-active">
-    <div class="card start-card">
-      <div class="start-hero">
-        <img class="logo" src="assets/logo.webp" alt="feast." width="120" height="33">
-        <img class="hero-chef" src="assets/toss.webp" alt="" width="317" height="480" fetchpriority="high">
-        <p class="round-badge"><span aria-hidden="true">⏱</span> <span data-i18n="roundBadge"></span></p>
-      </div>
-      <div class="start-body">
-        <h1 data-i18n="headline">45 saniye oynayın, feast dünyasına adım atın!</h1>
-        <p class="sub" data-i18n="subtitle"></p>
-        <div class="legend">
-          <div class="legend-group good"><span data-i18n="howGates"></span><div data-legend="gates"></div></div>
-          <div class="legend-group bad"><span data-i18n="howFeed"></span><div data-legend="eaters"></div></div>
-        </div>
-        <div class="legend-chips">
-          <div class="legend-bonus legend-discover"><span aria-hidden="true">🔒</span><span data-i18n="howDiscover"></span></div>
-          <div class="legend-bonus"><span aria-hidden="true">👑</span><span data-i18n="howBoss"></span></div>
-        </div>
-        <button id="btn-play" class="btn btn-primary btn-pulse" type="button" data-i18n="play">45 saniye oyna</button>
-        <p class="hint">👆 <span data-i18n="howDrag"></span></p>
-        <p id="start-best" class="best"></p>
-        <div class="ticker" aria-live="polite"><span id="ticker-text"></span></div>
-        <a class="link-app" data-store="start" href="#" target="_top" rel="noopener" data-i18n="skipToApp"></a>
-      </div>
-    </div>
-  </section>
-
-  <!-- REWARD FLOW INTRO (only themes with flow: 'reward') -->
-  <section id="intro" class="screen intro" aria-live="polite">
+  <!-- INTRO (first screen) -->
+  <section id="intro" class="screen intro is-active" aria-live="polite">
     <!-- 1–2: one hypnotic spiral (built in reward-ui.js) that keeps spinning
          across both steps, then collapses into the centre -->
     <div class="intro-vortex" aria-hidden="true"><div class="intro-vortex-spin"></div></div>
@@ -125,6 +97,70 @@
     <div class="box-flash" aria-hidden="true"></div>
   </section>
 
+  <!-- REWARD FLOW: "feast nedir?" explainer after the box opens (8 s, plays
+       through on its own). Look follows @feast_tr's "feast nedir?" highlight: red
+       background, white caption on top, the app inside a phone. Scenes switch
+       on data-step (reward-ui.js playExplainer); every cut punches the camera
+       and flashes. Word lists, reels and chat come from the config. -->
+  <section id="explainer" class="screen explainer" aria-live="polite">
+    <div class="ex-cam">
+      <span class="ex-swoosh" aria-hidden="true"></span>
+
+      <div class="ex-scene" data-scene="hook"><p class="ex-hook"></p></div>
+
+      <div class="ex-scene" data-scene="brand">
+        <img class="ex-logo" src="assets/logo.webp" alt="feast." width="120" height="33">
+        <p class="ex-words"></p>
+      </div>
+
+      <div class="ex-stage">
+        <p class="ex-caption">
+          <span data-cap="map" data-i18n="exMap"></span>
+          <span data-cap="reels" data-i18n="exReels"></span>
+          <span data-cap="friends" data-i18n="exFriends"></span>
+        </p>
+        <div class="ex-phone-wrap">
+          <strong class="ex-sticker" aria-hidden="true" data-i18n="exSticker"></strong>
+          <div class="ex-phone" aria-hidden="true">
+            <span class="ex-island"></span>
+
+            <div class="ex-screen ex-map">
+              <span class="ex-park"></span>
+              <svg class="ex-route" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M50 58 L50 70 L28 70 L28 84" pathLength="1"/></svg>
+              <span class="ex-me"></span>
+              <span class="ex-pin" style="--x:28%;--y:84%;--d:.1s">🍕</span>
+              <span class="ex-pin" style="--x:74%;--y:30%;--d:.25s">🍔</span>
+              <span class="ex-pin" style="--x:22%;--y:34%;--d:.4s">☕</span>
+              <span class="ex-pin" style="--x:78%;--y:66%;--d:.55s">🍣</span>
+              <span class="ex-eta">🚶 6 dk</span>
+            </div>
+
+            <div class="ex-screen ex-reels"><div class="ex-reel-track"></div><span class="ex-touch"></span></div>
+
+
+            <div class="ex-screen ex-chat">
+              <b class="ex-chat-head"><span>🍕</span> feast</b>
+              <p class="ex-msg"></p>
+              <p class="ex-msg ex-mine"></p>
+              <p class="ex-msg ex-mine ex-share"><img src="assets/cuisine/pizza.webp" alt=""><span>Margherita Pizza · ₺340</span></p>
+              <p class="ex-msg"></p>
+            </div>
+
+            <nav class="ex-tabbar">
+              <svg viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/></svg>
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              <svg viewBox="0 0 24 24"><path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/></svg>
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4.5-6 8-6s7 1.5 8 6"/></svg>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ex-progress" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+    <span class="ex-flash" aria-hidden="true"></span>
+  </section>
+
   <!-- REWARD FLOW: lost before 45 s → one more try (REWARD_CONFIG.onLose = 'retry') -->
   <section id="retry" class="screen retry-screen">
     <div class="retry-wrap">
@@ -171,6 +207,16 @@
             <span class="gift-medal"></span>
           </span>
           <span class="box-twinkles"><i></i><i></i><i></i><i></i></span>
+          <span class="pods-badge">×3</span>
+          <!-- the prize rising out of the box: generic earbuds case (no logo) -->
+          <svg class="pods" viewBox="0 0 120 132" stroke="#3a1d10" stroke-width="4" stroke-linejoin="round">
+            <defs><linearGradient id="podsShade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#e4dfd8"/></linearGradient></defs>
+            <rect x="12" y="6" width="96" height="34" rx="17" fill="url(#podsShade)" transform="rotate(-16 14 40)"/>
+            <g fill="#fff"><rect x="34" y="34" width="13" height="34" rx="6.5"/><circle cx="40.5" cy="34" r="12"/><rect x="73" y="34" width="13" height="34" rx="6.5"/><circle cx="79.5" cy="34" r="12"/></g>
+            <path d="M10 54h100v36a36 36 0 0 1-36 36H46a36 36 0 0 1-36-36z" fill="url(#podsShade)"/>
+            <path d="M22 64v22a24 24 0 0 0 10 19" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="60" cy="100" r="3" fill="#7fe07f" stroke-width="2"/>
+          </svg>
         </div>
         <span class="float-word" style="--d:.2s;--r:-6deg;--t:3.2s;left:0;top:6%" data-i18n="rewardPlaceCampus"></span>
         <span class="float-word" style="--d:.45s;--r:5deg;--t:3.6s;right:0;top:20%">📍 Kadıköy</span>
@@ -184,6 +230,7 @@
           <span data-i18n="rewardDownload"></span>
         </a>
         <p class="reward-tagline"><span data-i18n="rewardTagline"></span> <span class="heart" aria-hidden="true">♡</span></p>
+        <a class="reward-terms" data-terms hidden target="_blank" rel="noopener" data-i18n="rewardTerms"></a>
         <p class="reward-meta">
           <span id="reward-score"></span>
           <button class="link-btn" type="button" data-action="again" data-i18n="again"></button>
@@ -195,57 +242,6 @@
 
   <!-- PLAY (canvas + HUD only) -->
   <section id="play" class="screen" aria-hidden="true"></section>
-
-  <!-- GAME OVER -->
-  <section id="over" class="screen scrollable">
-    <div class="card over-card">
-      <h2 id="over-title"></h2>
-      <div class="rank-badge"><img src="assets/chef3.webp" alt="" width="64" height="80"><span id="over-rank"></span></div>
-      <div class="score-big"><span id="over-score">0</span><small data-i18n="points"></small></div>
-      <p id="over-best" class="best"></p>
-      <p id="over-stats" class="stats"></p>
-      <p id="over-discovered" class="discovered" hidden></p>
-
-      <div class="craving">
-        <h3 data-i18n="cravingTitle"></h3>
-        <div id="craving-grid" class="craving-grid"></div>
-      </div>
-
-      <div id="cta" class="cta">
-        <div class="chef-sticker"><img src="assets/chef-head.webp" alt="" width="44" height="44"><span data-i18n="chefPick"></span></div>
-        <img class="cta-logo" src="assets/logo.webp" alt="feast." width="96" height="26">
-        <h3 id="cta-title" data-i18n="ctaTitle"></h3>
-        <p data-i18n="ctaBody"></p>
-        <ul class="cta-points">
-          <li><span aria-hidden="true">📍</span><span data-i18n="ctaPoint1"></span></li>
-          <li><span aria-hidden="true">📖</span><span data-i18n="ctaPoint2"></span></li>
-          <li><span aria-hidden="true">👥</span><span data-i18n="ctaPoint3"></span></li>
-        </ul>
-        <a class="btn btn-store" data-store="over" href="#" target="_top" rel="noopener">
-          <span aria-hidden="true">⬇</span> <span data-i18n="ctaButton" data-i18n-platform></span>
-        </a>
-        <p class="cta-free" data-store-only data-i18n="ctaFree"></p>
-        <ol class="cta-steps" data-store-only>
-          <li><b>1</b><span data-i18n="step1"></span></li>
-          <li><b>2</b><span data-i18n="step2" data-i18n-platform></span></li>
-          <li><b>3</b><span data-i18n="step3"></span></li>
-        </ol>
-        <div class="app-qr">
-          <img src="assets/store-qr.svg" loading="lazy" alt="feast. uygulamasını indirme QR kodu" data-i18n-alt="altStoreQr" width="132" height="132">
-          <div class="app-qr-text">
-            <b data-i18n="qrTitle"></b>
-            <span data-i18n="qrBody"></span>
-            <small data-i18n="qrHint" data-i18n-platform></small>
-          </div>
-        </div>
-      </div>
-
-      <div class="row">
-        <button id="btn-again" class="btn btn-ghost" type="button" data-action="again" data-i18n="again"></button>
-        <button id="btn-share" class="btn btn-ghost" type="button" data-action="share" data-i18n="share"></button>
-      </div>
-    </div>
-  </section>
 
   <script type="module" src="js/main.js"></script>
 </body>

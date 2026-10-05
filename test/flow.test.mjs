@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  pickFlow, INTRO_STEPS, introPlan, createSequencer, createBoxState, REWARD_KEYS,
+  INTRO_STEPS, introPlan, createSequencer, createBoxState, REWARD_KEYS, EXPLAINER_STEPS,
 } from '../js/flow.js';
 import { pickTheme } from '../js/themes.js';
 import { makeT } from '../js/i18n.js';
@@ -10,7 +10,6 @@ import {
   pickCampus, turkishPluralDative, turkishLocative, themeStringsWithReward,
 } from '../js/campus.js';
 
-const { avatars: AVATARS } = REWARD_CONFIG;
 // t() exactly as main.js builds it for ?src=itu (optionally with &campus=…).
 const rewardT = (locale, campus = null) => makeT(locale, themeStringsWithReward(pickTheme('itu'), campus));
 
@@ -26,10 +25,26 @@ function fakeClock() {
   };
 }
 
-test('pickFlow uses the reward flow only for themes that opt in', () => {
-  assert.equal(pickFlow(null), 'classic');
-  assert.equal(pickFlow({ id: 'x' }), 'classic');
-  assert.equal(pickFlow(pickTheme('itu')), 'reward');
+test('explainer runs its scenes in order (~12 s) and ends on a terminal done step', () => {
+  assert.deepEqual(EXPLAINER_STEPS.map((s) => s.id), ['hook', 'brand', 'map', 'reels', 'friends', 'done']);
+  const total = EXPLAINER_STEPS.reduce((sum, s) => sum + s.ms, 0);
+  assert.ok(total <= 8_000, `explainer lasts ${total} ms (attention span: 8 s)`);
+  const clock = fakeClock();
+  const seen = [];
+  const seq = createSequencer({ steps: EXPLAINER_STEPS, onStep: (id) => seen.push(id), ...clock });
+  seq.start();
+  seq.skip();
+  assert.deepEqual(seen, ['hook', 'done']); // tap → prize page, once
+});
+
+test('explainer arrays have one entry per slot in both languages', () => {
+  ['tr', 'en'].forEach((locale) => {
+    const t = rewardT(locale);
+    assert.equal(t('exSlogan').length, 3, `${locale}.exSlogan`);
+    assert.equal(t('exChat').length, 3, `${locale}.exChat`);
+    assert.match(t('rewardTitle'), /3 .*AirPods\u00a05/);
+  });
+  REWARD_CONFIG.reels.forEach((m) => assert.ok(m.name && m.img && Number.isInteger(m.price), JSON.stringify(m)));
 });
 
 test('intro ends on a terminal ready step that waits for a click', () => {
@@ -107,14 +122,6 @@ test('English reward copy is not silently the Turkish text', () => {
   });
 });
 
-test('reward avatars are placeholders with a background and an emoji', () => {
-  assert.ok(AVATARS.length >= 4 && AVATARS.length <= 8);
-  AVATARS.forEach((a) => {
-    assert.match(a.bg, /^#[0-9a-f]{6}$/i);
-    assert.ok(a.emoji.length > 0);
-  });
-});
-
 // The page cannot know who the visitor's friends are, so the reward copy must
 // not state as fact that they are already on feast (fabricated social proof).
 test('reward copy makes no factual claim about the viewer\'s friends', () => {
@@ -159,13 +166,6 @@ test('losing the round is a config choice: give the box anyway or retry', () => 
   assert.ok(['box', 'retry'].includes(REWARD_CONFIG.onLose));
 });
 
-test('restaurant cards have a name and either an image or a monogram', () => {
-  const { restaurants } = REWARD_CONFIG;
-  assert.ok(restaurants.length >= 3 && restaurants.length <= 5);
-  assert.equal(restaurants[0].name, 'Mustachio');
-  restaurants.forEach((r) => assert.ok(r.name && (r.img || r.monogram), JSON.stringify(r)));
-});
-
 // ---------- campus from ?campus= ----------
 
 test('pickCampus keeps a clean campus name and rejects junk', () => {
@@ -194,8 +194,8 @@ test('campus fills the reward copy; İTÜ/ITU by default', () => {
   assert.equal(rewardT('en')('introLead'), 'For ITU students');
   assert.equal(rewardT('tr', 'ODTÜ')('introLead'), 'ODTÜ\'lülere özel');
   assert.equal(rewardT('en', 'ODTÜ')('introLead'), 'For ODTÜ students');
-  assert.match(rewardT('tr', 'ODTÜ')('rewardSub'), /ODTÜ'de lezzet/);
-  assert.match(rewardT('en', 'ODTÜ')('rewardSub'), /your ODTÜ food story/);
+  assert.match(rewardT('tr', 'ODTÜ')('rewardSub'), /ODTÜ'de çekilişe/);
+  assert.match(rewardT('en', 'ODTÜ')('rewardSub'), /the ODTÜ draw/);
 });
 
 test('promise frame reads "Yeni döneme ÖDÜLLE başla"', () => {

@@ -711,3 +711,321 @@ html[data-theme="itu"] {
 @media (prefers-reduced-motion: reduce) {
   .ready-bubble { animation: none; }
 }
+
+/* ---------- explainer: "feast nedir?" (between the box and the prize) ----------
+   Cut like @feast_tr's "feast nedir?" highlight: feast-red background with
+   diagonal lines, white caption on top, the real app look inside a phone.
+   Scenes switch on data-step (reward-ui.js playExplainer, durations in
+   reward-config.js explainer): hook words → logo + "Nerede? Ne? Kaça?" →
+   map with route → Reels-style dish feed under a "KAYDIR" sticker → chat
+   (8 s in total: people give it about that long). Every cut punches the camera (.ex-cam.is-cut) and flashes
+   white (.ex-flash.is-cut); screens inside the phone hard-cut, the phone
+   swings to a new angle. No skipping: it plays through like a video. */
+.explainer {
+  --ex-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  overflow: hidden;
+  color: #fff;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, .055) 0 2px, transparent 2px 15px),
+    linear-gradient(172deg, #ff4b3e 0%, #ff2b3a 48%, #df1230 100%);
+}
+#explainer:not(.is-active) *, #explainer:not(.is-active) *::before, #explainer:not(.is-active) *::after { animation-play-state: paused; }
+@property --n { syntax: '<integer>'; inherits: false; initial-value: 0; }
+
+.ex-cam { position: absolute; inset: 0; }
+.ex-cam.is-cut { animation: camPunch .4s cubic-bezier(.15, .9, .3, 1); }
+@keyframes camPunch { from { scale: 1.16; filter: blur(3px); } }
+.ex-flash { position: absolute; z-index: 9; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+.ex-flash.is-cut { animation: exFlash .24s ease-out; }
+@keyframes exFlash { from { opacity: .7; } }
+/* the white swooshes from the highlight's background, drifting slowly */
+.ex-swoosh {
+  position: absolute;
+  inset: -15%;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 45% at 105% 62%, transparent 96%, rgba(255, 255, 255, .22) 97% 98.5%, transparent 99.5%),
+    radial-gradient(ellipse 50% 40% at -8% 22%, transparent 96%, rgba(255, 255, 255, .16) 97% 98.5%, transparent 99.5%);
+  animation: swoosh 7s ease-in-out infinite alternate;
+}
+@keyframes swoosh { to { rotate: 6deg; scale: 1.06; } }
+
+/* Instagram-style story bars */
+.ex-progress { position: absolute; z-index: 8; top: calc(10px + var(--safe-top)); left: 12px; right: 56px; display: flex; gap: 4px; max-width: 540px; margin: 0 auto; }
+.ex-progress i { position: relative; flex: 1; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .35); overflow: hidden; }
+.ex-progress i::after { content: ""; position: absolute; inset: 0; background: #fff; transform: scaleX(0); transform-origin: left; }
+.ex-progress i.is-done::after { transform: none; }
+.ex-progress i.is-on::after { animation: exFill var(--step-ms, 2s) linear forwards; }
+@keyframes exFill { to { transform: none; } }
+
+.ex-scene, .ex-stage { position: absolute; inset: 0; display: none; }
+.explainer[data-step="hook"] [data-scene="hook"],
+.explainer[data-step="brand"] [data-scene="brand"] { display: grid; place-items: center; align-content: center; }
+.explainer:is([data-step="map"], [data-step="reels"], [data-step="friends"]) .ex-stage { display: flex; }
+
+/* 1. hook: "Bugün ne yesek?" one word per beat, then a shake */
+.ex-hook {
+  margin: 0;
+  padding: 0 18px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 .22em;
+  font: 900 clamp(46px, 14vw, 104px)/.98 var(--font);
+  text-align: center;
+  text-shadow: 0 6px 0 rgba(110, 0, 12, .35);
+  animation: exShake .3s linear .62s;
+}
+.ex-hook span { display: inline-block; animation: wordHit .2s cubic-bezier(.2, .9, .3, 1.7) calc(var(--i) * .15s) both; }
+.ex-hook::after { content: "🤔"; display: inline-block; animation: wordHit .3s cubic-bezier(.2, .9, .3, 1.8) .52s both; }
+@keyframes wordHit { from { scale: 2.4; opacity: 0; } }
+@keyframes exShake {
+  20% { translate: -7px 3px; rotate: -1.5deg; }
+  40% { translate: 6px -4px; rotate: 1.2deg; }
+  60% { translate: -4px 2px; }
+  80% { translate: 3px -1px; }
+}
+
+/* 2. brand: white logo slams in, then Nerede? / Ne? / Kaça? flash one after another */
+[data-scene="brand"] { gap: clamp(10px, 2.5dvh, 22px); }
+.ex-logo { width: clamp(150px, 48vw, 260px); height: auto; filter: brightness(0) invert(1); animation: logoSlam .3s cubic-bezier(.2, .9, .3, 1.5) both, exShake .3s linear .3s; }
+@keyframes logoSlam { from { scale: 3.2; opacity: 0; } }
+.ex-words { margin: 0; display: grid; place-items: center; font: 900 clamp(50px, 15.5vw, 112px)/1 var(--font); text-shadow: 0 6px 0 rgba(110, 0, 12, .35); }
+.ex-words span { grid-area: 1 / 1; }
+.ex-words span:nth-child(1) { animation: wordHit .14s ease-out .32s both, wordOut .01s linear .57s forwards; }
+.ex-words span:nth-child(2) { animation: wordHit .14s ease-out .58s both, wordOut .01s linear .82s forwards; }
+.ex-words span:nth-child(3) { animation: wordHit .2s cubic-bezier(.2, .9, .3, 1.8) .83s both; color: var(--gold); }
+@keyframes wordOut { to { opacity: 0; } }
+
+/* 3–6. caption on top, the phone below; the phone swings to a new angle on each cut */
+.ex-stage {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 2dvh, 18px);
+  padding: calc(46px + var(--safe-top)) 16px calc(14px + var(--safe-bottom));
+}
+.ex-caption { position: relative; z-index: 7; margin: 0; width: 100%; max-width: 440px; min-height: 2.5em; display: grid; place-items: center; font: 700 clamp(19px, 5.6vw, 28px)/1.2 var(--ex-sans); text-align: center; text-shadow: 0 2px 8px rgba(90, 0, 10, .3); }
+.ex-caption > span { grid-area: 1 / 1; max-width: 19ch; text-wrap: balance; visibility: hidden; }
+.explainer[data-step="map"] [data-cap="map"],
+.explainer[data-step="reels"] [data-cap="reels"],
+.explainer[data-step="friends"] [data-cap="friends"] { visibility: visible; animation: capIn .35s cubic-bezier(.2, .9, .3, 1.2) .05s both; }
+@keyframes capIn { from { translate: 0 60%; opacity: 0; filter: blur(5px); } }
+
+.ex-phone-wrap { position: relative; flex: none; perspective: 1100px; animation: phoneFloat 2.8s ease-in-out infinite alternate; }
+@keyframes phoneFloat { to { translate: 0 -8px; } }
+.ex-phone {
+  position: relative;
+  width: min(62vw, 32dvh, 290px);
+  aspect-ratio: 9 / 19;
+  border: 7px solid #111;
+  border-radius: 44px;
+  background: #fff;
+  box-shadow: 0 0 0 2px #3a3a3a, 0 34px 60px rgba(80, 0, 12, .45);
+  overflow: hidden;
+  container-type: inline-size;
+  color: #111;
+  transform: rotateY(var(--ry, 0deg)) rotateZ(var(--rz, 0deg)) scale(var(--sc, 1));
+  transition: transform .7s cubic-bezier(.2, .9, .3, 1.3);
+  animation: phoneIn .55s cubic-bezier(.2, .9, .3, 1.15) both;
+}
+@keyframes phoneIn { from { translate: 0 85vh; rotate: 18deg; } }
+.explainer[data-step="map"] .ex-phone { --ry: -16deg; --rz: 4deg; }
+.explainer[data-step="reels"] .ex-phone { --ry: 0deg; --rz: -3deg; --sc: 1.04; }
+.explainer[data-step="friends"] .ex-phone { --ry: 14deg; --rz: -3deg; }
+.ex-island { position: absolute; z-index: 6; top: 2.6cqi; left: 50%; width: 30%; height: 8cqi; translate: -50% 0; border-radius: 99px; background: #111; }
+
+.ex-screen { position: absolute; inset: 0; display: none; overflow: hidden; }
+.explainer[data-step="map"] .ex-map,
+.explainer[data-step="reels"] .ex-reels,
+.explainer[data-step="friends"] .ex-chat { display: block; }
+
+/* the app's floating dark tab bar; the active tab turns red */
+.ex-tabbar {
+  position: absolute;
+  z-index: 5;
+  left: 6%;
+  right: 6%;
+  bottom: 4cqi;
+  height: 13cqi;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-radius: 99px;
+  background: rgba(22, 22, 26, .92);
+}
+.ex-tabbar svg { width: 6.5cqi; height: 6.5cqi; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: stroke .2s; }
+.explainer[data-step="map"] .ex-tabbar svg:nth-child(4),
+.explainer[data-step="reels"] .ex-tabbar svg:nth-child(2) { stroke: var(--red); }
+.explainer[data-step="friends"] .ex-tabbar { display: none; }
+
+/* map: streets, route drawing to the pizza place, pins popping, "6 dk" pill */
+.ex-map {
+  background:
+    linear-gradient(90deg, transparent 47%, #fff 47% 53%, transparent 53%),
+    linear-gradient(0deg, transparent 28%, #fff 28% 32%, transparent 32%),
+    linear-gradient(0deg, transparent 68%, #fff 68% 72%, transparent 72%),
+    linear-gradient(28deg, transparent 40%, #fff 40% 42.5%, transparent 42.5%),
+    repeating-linear-gradient(0deg, transparent 0 13cqi, rgba(0, 0, 0, .04) 13cqi 14cqi),
+    repeating-linear-gradient(90deg, transparent 0 13cqi, rgba(0, 0, 0, .04) 13cqi 14cqi),
+    #eceef1;
+}
+.ex-park { position: absolute; right: 6%; top: 40%; width: 34%; height: 18%; border-radius: 40%; background: #cfe9bf; }
+.ex-route { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.ex-route path { fill: none; stroke: var(--red); stroke-width: 5px; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
+.explainer[data-step="map"] .ex-route path { animation: routeDraw .6s cubic-bezier(.6, 0, .3, 1) .35s forwards; }
+@keyframes routeDraw { to { stroke-dashoffset: 0; } }
+.ex-me { position: absolute; z-index: 2; left: 50%; top: 58%; width: 6cqi; height: 6cqi; translate: -50% -50%; border-radius: 50%; background: #2f7bff; border: 2px solid #fff; box-shadow: 0 0 0 5cqi rgba(47, 123, 255, .18); }
+.ex-pin {
+  position: absolute;
+  z-index: 3;
+  isolation: isolate;
+  left: var(--x);
+  top: var(--y);
+  width: 12cqi;
+  height: 12cqi;
+  margin: -14cqi 0 0 -6cqi;
+  display: grid;
+  place-items: center;
+  font-size: 5.6cqi;
+}
+.ex-pin::before { content: ""; position: absolute; inset: 0; z-index: -1; border: 2.5px solid #fff; border-radius: 50% 50% 50% 0; background: var(--red); box-shadow: 0 3px 8px rgba(0, 0, 0, .25); transform: rotate(-45deg); }
+.explainer[data-step="map"] .ex-pin { animation: pinDrop .45s cubic-bezier(.3, 1.6, .5, 1) calc(.1s + var(--d)) both; }
+@keyframes pinDrop { from { translate: 0 -30cqi; opacity: 0; } }
+.ex-eta { position: absolute; z-index: 4; top: 15cqi; left: 50%; translate: -50% 0; padding: 1.8cqi 4cqi; border-radius: 99px; background: var(--red); color: #fff; font: 800 4.6cqi/1 var(--ex-sans); white-space: nowrap; box-shadow: 0 4px 12px rgba(200, 0, 20, .35); }
+.explainer[data-step="map"] .ex-eta { animation: wordHit .3s cubic-bezier(.2, .9, .3, 1.7) .9s both; }
+
+/* KAYDIR: the comic sticker from the highlight, slammed over the phone */
+.ex-sticker {
+  position: absolute;
+  z-index: 7;
+  left: 50%;
+  top: 9%;
+  display: none;
+  font: 900 clamp(54px, 17vw, 104px)/1 var(--font);
+  letter-spacing: .02em;
+  white-space: nowrap;
+  color: #fff;
+  -webkit-text-stroke: 3px #111;
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 #a9bccf, 0 6px 0 #7b92ab, 0 9px 0 #52677f, 0 12px 0 #111, 0 20px 26px rgba(0, 0, 0, .35);
+  translate: -50% 0;
+  rotate: -7deg;
+}
+.explainer[data-step="reels"] .ex-sticker { display: block; animation: stickerSlam .32s cubic-bezier(.2, .9, .3, 1.7) .12s both, stickerWobble 1s ease-in-out .5s infinite alternate; }
+@keyframes stickerSlam { from { scale: 3; opacity: 0; rotate: -18deg; } }
+@keyframes stickerWobble { to { rotate: -3deg; scale: 1.04; } }
+
+/* Reels-style feed: full-screen dishes snap upward, a thumb swipes, a like pops */
+.ex-reels { background: #111; }
+.ex-reel-track { height: 100%; }
+.explainer[data-step="reels"] .ex-reel-track { animation: reelScroll var(--step-ms, 2.6s) both; }
+@keyframes reelScroll {
+  0%, 20% { transform: translateY(0); animation-timing-function: cubic-bezier(.55, 0, .2, 1.15); }
+  30%, 46% { transform: translateY(-100%); animation-timing-function: cubic-bezier(.55, 0, .2, 1.15); }
+  56%, 72% { transform: translateY(-200%); animation-timing-function: cubic-bezier(.55, 0, .2, 1.15); }
+  82%, 100% { transform: translateY(-300%); }
+}
+.ex-reel { position: relative; height: 100%; overflow: hidden; isolation: isolate; background: #111; }
+/* full-bleed portrait photo; slow Ken Burns push so each dish feels like video */
+.ex-reel img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.explainer[data-step="reels"] .ex-reel img { animation: kenBurns 3s ease-out both; }
+@keyframes kenBurns { from { scale: 1.12; } }
+.ex-reel::before { content: ""; position: absolute; inset: 0 0 auto; z-index: 1; height: 22%; background: linear-gradient(rgba(0, 0, 0, .35), transparent); }
+.ex-reel::after { content: ""; position: absolute; inset: 50% 0 0; z-index: 1; background: linear-gradient(transparent, rgba(0, 0, 0, .78)); }
+.ex-reel-info { position: absolute; z-index: 2; left: 5cqi; right: 20cqi; bottom: 22cqi; display: grid; gap: 2cqi; color: #fff; font-family: var(--ex-sans); }
+.ex-reel-name { font: 800 5.8cqi/1.1 var(--ex-sans); }
+.ex-reel-price { justify-self: start; padding: 1cqi 2.6cqi; border-radius: 99px; background: rgba(255, 255, 255, .92); color: #111; font: 800 4.2cqi/1.2 var(--ex-sans); }
+.ex-reel-btn { padding: 2.4cqi; border-radius: 3cqi; background: #ff6a2b; text-align: center; font: 700 4.2cqi/1 var(--ex-sans); }
+.ex-reel-side { position: absolute; z-index: 2; right: 3.5cqi; bottom: 26cqi; display: grid; gap: 4.5cqi; justify-items: center; font: 400 6.5cqi/1 var(--ex-sans); color: #fff; text-shadow: 0 2px 6px rgba(0, 0, 0, .5); }
+.explainer[data-step="reels"] .ex-reel:nth-child(2) .ex-like { animation: likePop .35s cubic-bezier(.2, .9, .3, 1.8) .9s both; }
+@keyframes likePop { 50% { scale: 1.7; } to { color: #ff2d55; } }
+.ex-reel:nth-child(2) .ex-reel-info::before { /* big heart burst on the double-tap */
+  content: "♥";
+  position: absolute;
+  left: 50%;
+  bottom: 52cqi;
+  translate: -50% 0;
+  font-size: 26cqi;
+  color: #ff2d55;
+  opacity: 0;
+  text-shadow: 0 6px 20px rgba(0, 0, 0, .35);
+}
+.explainer[data-step="reels"] .ex-reel:nth-child(2) .ex-reel-info::before { animation: heartBurst .55s cubic-bezier(.2, .9, .3, 1.5) .76s both; }
+@keyframes heartBurst { 0% { opacity: 0; scale: .2; } 30% { opacity: 1; scale: 1.15; } 70% { opacity: 1; scale: 1; } 100% { opacity: 0; scale: 1.1; translate: -50% -12cqi; } }
+.ex-touch { position: absolute; z-index: 4; left: 56%; width: 12cqi; aspect-ratio: 1; border-radius: 50%; background: rgba(255, 255, 255, .6); box-shadow: 0 0 0 3cqi rgba(255, 255, 255, .18); opacity: 0; }
+.explainer[data-step="reels"] .ex-touch { animation: touchSwipe var(--step-ms, 2.6s) linear both; }
+@keyframes touchSwipe {
+  0%, 11% { top: 72%; opacity: 0; } 13% { top: 72%; opacity: .9; } 22% { top: 34%; opacity: 0; }
+  37% { top: 72%; opacity: 0; } 39% { top: 72%; opacity: .9; } 48% { top: 34%; opacity: 0; }
+  63% { top: 72%; opacity: 0; } 65% { top: 72%; opacity: .9; } 74% { top: 34%; opacity: 0; }
+  100% { top: 34%; opacity: 0; }
+}
+
+/* chat: the app's warm chat screen, messages pop in, a dish gets shared */
+.ex-chat {
+  padding: 13cqi 4.5cqi 18cqi;
+  display: none;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2.4cqi;
+  background: radial-gradient(circle, rgba(255, 140, 60, .12) 1.5px, transparent 2px) 0 0 / 7cqi 7cqi, #fff3e6;
+  font-family: var(--ex-sans);
+}
+.explainer[data-step="friends"] .ex-chat { display: flex; }
+.ex-chat-head { position: absolute; top: 12cqi; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 2cqi; font: 800 4.4cqi/1 var(--ex-sans); }
+.ex-chat-head span { display: grid; place-items: center; width: 8cqi; height: 8cqi; border-radius: 50%; background: var(--red); font-size: 4.2cqi; }
+.ex-chat::after { content: ""; position: absolute; left: 4.5cqi; right: 4.5cqi; bottom: 5cqi; height: 10cqi; border-radius: 99px; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .12); }
+.ex-msg { margin: 0; max-width: 80%; align-self: flex-start; padding: 2.4cqi 3.6cqi; border-radius: 4.5cqi 4.5cqi 4.5cqi 1.2cqi; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .1); font: 600 4.3cqi/1.25 var(--ex-sans); }
+.ex-msg.ex-mine { align-self: flex-end; border-radius: 4.5cqi 4.5cqi 1.2cqi 4.5cqi; background: var(--red); color: #fff; }
+.ex-share { width: 62%; padding: 1.4cqi; display: grid; gap: 1.4cqi; }
+.ex-share img { width: 100%; aspect-ratio: 4 / 3; border-radius: 3.2cqi; object-fit: cover; }
+.ex-share span { padding: 0 1.6cqi 1cqi; font: 700 3.7cqi/1.2 var(--ex-sans); }
+.explainer[data-step="friends"] .ex-msg { animation: bubbleIn .35s cubic-bezier(.2, .9, .3, 1.6) both; }
+.explainer[data-step="friends"] .ex-msg:nth-of-type(1) { animation-delay: .15s; }
+.explainer[data-step="friends"] .ex-msg:nth-of-type(2) { animation-delay: .5s; }
+.explainer[data-step="friends"] .ex-msg:nth-of-type(3) { animation-delay: .8s; }
+.explainer[data-step="friends"] .ex-msg:nth-of-type(4) { animation-delay: 1.2s; }
+@keyframes bubbleIn { from { scale: .3; opacity: 0; } }
+
+/* Landscape phones: caption on the left, phone on the right. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .ex-stage { flex-direction: row; gap: 6vw; padding-top: calc(30px + var(--safe-top)); }
+  .ex-caption { width: 40vw; }
+  .ex-phone { width: min(28vw, 38dvh); }
+  .ex-sticker { font-size: min(64px, 16dvh); }
+}
+
+/* ---------- prize: the earbuds rise out of the open gift ---------- */
+.pods {
+  position: absolute;
+  z-index: 4;
+  left: 54%;
+  bottom: 50%;
+  width: 40%;
+  overflow: visible;
+  translate: -50% 0;
+  filter: drop-shadow(0 0 14px rgba(255, 236, 160, .95)) drop-shadow(0 6px 0 rgba(58, 29, 16, .22));
+}
+.reward-screen.is-active .pods { animation: podsRise .8s cubic-bezier(.2, .9, .3, 1.4) .45s both, podsFloat 2.6s ease-in-out 1.25s infinite alternate; }
+@keyframes podsRise { from { translate: -50% 70%; scale: .3; opacity: 0; } }
+@keyframes podsFloat { to { translate: -50% -8px; } }
+.reward-terms { font: 800 12.5px var(--font); color: rgba(58, 29, 16, .7); }
+/* "×3": three pairs are given away */
+.pods-badge {
+  position: absolute;
+  z-index: 5;
+  right: 2%;
+  top: 4%;
+  padding: 4px 12px;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: var(--red);
+  box-shadow: 0 4px 0 var(--ink);
+  color: #fff;
+  font: 900 clamp(22px, 7vw, 34px)/1 var(--font);
+  rotate: 10deg;
+}
+.reward-screen.is-active .pods-badge { animation: wordHit .4s cubic-bezier(.2, .9, .3, 1.8) .9s both, giftBob 2s ease-in-out 1.3s infinite; }

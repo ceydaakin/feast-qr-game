@@ -2,12 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   detectPlatform,
-  storeUrl,
-  rankFor,
   pickLocale,
   pickLine,
   CUISINES,
-  STORE,
 } from '../js/logic.js';
 
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1';
@@ -30,27 +27,6 @@ test('detectPlatform treats iPadOS (desktop UA + touch) as iOS', () => {
 
 test('detectPlatform tolerates missing input', () => {
   assert.equal(detectPlatform(undefined, undefined), 'desktop');
-});
-
-test('storeUrl returns the App Store link for iOS', () => {
-  assert.equal(storeUrl('ios'), `https://apps.apple.com/tr/app/feast/id${STORE.appStoreId}`);
-});
-
-test('storeUrl returns a Play Store link with campaign referrer for Android', () => {
-  const url = new URL(storeUrl('android', 'qr_game'));
-  assert.equal(url.host, 'play.google.com');
-  assert.equal(url.searchParams.get('id'), STORE.androidPackage);
-  assert.equal(url.searchParams.get('referrer'), 'utm_source=qr_game&utm_medium=game');
-});
-
-test('storeUrl returns null on desktop', () => {
-  assert.equal(storeUrl('desktop'), null);
-});
-
-test('rankFor returns increasing ranks', () => {
-  assert.equal(rankFor(0), 0);
-  assert.equal(rankFor(1e6), 3);
-  assert.ok(rankFor(300) >= rankFor(100));
 });
 
 test('pickLocale is always Turkish unless ?lang=en is requested', () => {

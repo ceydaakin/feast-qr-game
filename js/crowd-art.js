@@ -277,14 +277,3 @@ export function buildCrowdSprites(laneW, dpr, places, theme = {}) {
     places: places.map((p) => lockedPlace(p.img, p.label, laneW, dpr)),
   };
 }
-
-// Small icons for the start-screen legend.
-export function buildLegendIcons(dpr, theme = {}) {
-  return {
-    gate: buildGateSprite({ op: 'mul', value: 2 }, 34, dpr),
-    gateBad: buildGateSprite({ op: 'sub', value: 3 }, 34, dpr),
-    eater: eater(40, dpr, { shirt: (theme.shirts || DEFAULT_SHIRTS)[0], label: theme.eaterLabel }),
-    big: eater(40, dpr, { shirt: '#3a1d10', skin: '#b6d58f', big: true }),
-    chef: chefBack(40, dpr, true),
-  };
-}

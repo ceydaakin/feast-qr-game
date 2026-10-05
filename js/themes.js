@@ -6,7 +6,6 @@ const ITU_BLUE = ['#0b3e7a', '#1f5fae', '#3a7bd5'];
 
 export const THEMES = Object.freeze({
   itu: {
-    flow: 'reward', // Osman's intro → box → reward flow; its copy lives in js/reward-config.js
     scene: { sky: 'stadium', ground: 'stadium', bees: 3, crisp: true }, // bees stay on the sides (js/bees.js)
     // Bundled rounded font (assets/fonts, declared in reward.css) for pages AND canvas text.
     font: '"Baloo 2"',
@@ -36,11 +35,6 @@ export const THEMES = Object.freeze({
     },
     strings: {
       tr: {
-        headline: '45 saniye oyna, yeni döneme İTÜ usulü başla!',
-        roundBadge: 'Yeni döneme özel lezzet turu',
-        subtitle: 'Okul başladı, kampüs aç! İTÜ Stadyumu\'nda şef ordunu büyüt, MED çimlerinden gölet kenarına herkesi doyur. Gerçek lezzetler oyunun sonunda.',
-        over_time: 'Tebrikler, İTÜ\'yü doyurdun! 🎉',
-        ranks: ['Hazırlıkçı 📘', 'Birinci Sınıf', 'Kıdemli', 'Kampüs Efsanesi 🏆'],
         shareText: 'Yeni dönemde İTÜ Stadyumu\'nda Şef Ordusu\'nda 45 saniyede {score} puan yaptım! Sen kaç kişiyi doyurursun? 🍝',
         bossIncoming: 'DEV OBUR STADA GİRDİ! 👑',
         tutDrag: '👆 Sürükle, yönlendir',
@@ -63,11 +57,6 @@ export const THEMES = Object.freeze({
         ],
       },
       en: {
-        headline: 'Play 45 seconds, start the new term the ITU way!',
-        roundBadge: 'New-term taste tour',
-        subtitle: 'School\'s back and campus is hungry! Grow your chef army in the ITU Stadium and feed everyone from the MED lawns to the pond.',
-        over_time: 'Well done, you fed ITU! 🎉',
-        ranks: ['Prep Student 📘', 'Freshman', 'Senior', 'Campus Legend 🏆'],
         shareText: 'I scored {score} in 45 seconds of Chef Army at the ITU Stadium! How many can you feed? 🍝',
         bossIncoming: 'THE GLUTTON ENTERED THE STADIUM! 👑',
         tutDrag: '👆 Drag to steer',

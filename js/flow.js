@@ -15,17 +15,20 @@ export const INTRO_STEPS = Object.freeze([
   { id: 'ready', ms: 0 }, // terminal: waits for the BAŞLA click
 ]);
 
+// Explainer between the box and the prize page; 'done' is terminal (→ prize).
+export const EXPLAINER_STEPS = Object.freeze([
+  ...Object.entries(REWARD_CONFIG.explainer).map(([id, ms]) => ({ id, ms })),
+  { id: 'done', ms: 0 },
+]);
+
 export const REWARD_KEYS = Object.freeze([
   'introLead', 'introPromise', 'introHot', 'introTail',
   'readyMain', 'readyHot', 'readyPlay', 'readyBubbles',
   'boxTitle', 'boxHint', 'boxOpen',
-  'rewardTitle', 'rewardSub', 'rewardDownload', 'rewardTagline', 'rewardPlaceCampus', 'rewardMore',
+  'exHook', 'exSlogan', 'exMap', 'exReels', 'exSticker', 'exSeeMap', 'exFriends', 'exChat',
+  'rewardTitle', 'rewardSub', 'rewardTerms', 'rewardDownload', 'rewardTagline', 'rewardPlaceCampus', 'rewardMore',
   'retryTitle', 'retrySub', 'retryButton', 'retryTip', 'rewardScore',
 ]);
-
-export function pickFlow(theme) {
-  return theme?.flow === 'reward' ? 'reward' : 'classic';
-}
 
 // The spiral intro plays on every visit (tap skips it). Only visitors who
 // asked their device for reduced motion go straight to BAŞLA.

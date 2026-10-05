@@ -59,16 +59,10 @@ const showOnly = (page, id) => page.evaluate((want) => {
 
 // Test-only: jump straight to a filled reward screen (skips a 45 s round).
 const forceReward = (page) => page.evaluate(async () => {
-  const { renderReward } = await import('/js/reward-ui.js');
   const { makeT } = await import('/js/i18n.js');
   const { pickTheme } = await import('/js/themes.js'); const { themeStringsWithReward } = await import('/js/campus.js');
   const t = makeT(document.documentElement.lang, themeStringsWithReward(pickTheme('itu'), new URLSearchParams(location.search).get('campus')));
-  renderReward({
-    avatarsEl: document.getElementById('reward-avatars'),
-    placesEl: document.getElementById('reward-places'),
-    scoreEl: document.getElementById('reward-score'),
-    scoreText: t('rewardScore', { score: 1688 }),
-  });
+  document.getElementById('reward-score').textContent = t('rewardScore', { score: 1688 });
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('is-active', s.id === 'reward'));
 });
 
@@ -162,14 +156,6 @@ try {
     await ctx.close();
   });
 
-  await check('no animations run on hidden screens during a classic round', async () => {
-    const page = await open(desktop, '');
-    await page.click('#btn-play', { force: true });
-    await page.waitForTimeout(1_000);
-    assert.deepEqual(await hiddenAnimations(page), []);
-    await page.close();
-  });
-
   await check('full İTÜ round → box opens once on double tap → reward', async () => {
     const page = await open(mobile);
     await page.click('#intro', { position: { x: 5, y: 5 } }); // skip the intro
@@ -188,7 +174,10 @@ try {
     }
     await page.click('#btn-box', { force: true });
     await page.click('#btn-box', { force: true });
-    await waitForScreen(page, 'reward', 5_000);
+    await waitForScreen(page, 'explainer', 5_000);
+    await page.click('#explainer'); // a tap must NOT skip: the explainer plays its 8 s
+    assert.equal(await active(page), 'explainer', 'tap skipped the explainer');
+    await waitForScreen(page, 'reward', 10_000);
     assert.match(await page.getAttribute('[data-store-main]', 'href'), /^https:\/\/get\.feast\.tr/, 'big button → get.feast.tr');
     assert.equal(await page.locator('[data-store-btn]').count(), 0, 'no separate store badges');
     assert.equal(await page.locator('#reward img[src*="qr"]').count(), 0, 'no QR on the reward screen');
@@ -200,15 +189,17 @@ try {
     await page.click('#intro', { position: { x: 5, y: 5 } });
     assert.match(await page.textContent('[data-frame="ready"] .intro-lead'), /ODTÜ'lülere özel/);
     await forceReward(page);
-    assert.match(await page.textContent('.reward-sub'), /ODTÜ'de lezzet/);
+    assert.match(await page.textContent('.reward-sub'), /ODTÜ'de çekilişe/);
     await page.close();
   });
 
   await check('download page: title, open gift, big download button, no chat or sticker', async () => {
     const page = await open(mobile);
     await forceReward(page);
-    assert.match(await page.textContent('.reward-title'), /Ödülün hazır!/);
+    assert.match(await page.textContent('.reward-title'), /3 adet AirPods\s5 hediye!/);
     assert.equal(await page.isVisible('#reward .gift-open'), true);
+    assert.equal(await page.isVisible('#reward .pods'), true);
+    assert.equal(await page.isVisible('[data-terms]'), false, 'terms link hidden until termsUrl is set');
     assert.equal(await page.isVisible('[data-store-main]'), true);
     assert.equal(await page.locator('#reward .reward-chat, #reward .chef-sticker').count(), 0);
     await page.close();
@@ -236,12 +227,6 @@ try {
     assert.equal(await page.isVisible('[data-store-main]'), true);
     assert.match(await page.getAttribute('[data-store-main]', 'href'), /^https:\/\/get\.feast\.tr/);
     assert.equal(await page.locator('#reward img[src*="qr"]').count(), 0);
-    await page.close();
-  });
-
-  await check('classic flow still opens on the start screen', async () => {
-    const page = await open(desktop, '');
-    assert.equal(await active(page), 'start');
     await page.close();
   });
 

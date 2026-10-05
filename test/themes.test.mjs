@@ -13,32 +13,12 @@ test('pickTheme resolves known sources case-insensitively', () => {
 
 test('theme strings override base strings, falling back per key', () => {
   const t = makeT('tr', THEMES.itu.strings);
-  assert.match(t('headline'), /İTÜ/);
-  assert.equal(t('play'), STRINGS.tr.play);
-  assert.equal(t('ranks').length, STRINGS.tr.ranks.length);
+  assert.match(t('shareText'), /İTÜ/);
+  assert.equal(t('again'), STRINGS.tr.again);
 });
 
 test('English theme falls back to the base English string, not Turkish theme copy', () => {
   const t = makeT('en', THEMES.itu.strings);
-  assert.match(t('headline'), /ITU/);
+  assert.match(t('shareText'), /ITU/);
   assert.equal(t('lines_idle'), STRINGS.en.lines_idle);
-});
-
-// The start-screen badge is one line of caps; longer copy shrinks to an
-// unreadable size on phones (see .round-badge in styles.css).
-const BADGE_MAX_CHARS = 30;
-
-test('every round badge is short enough to stay on one readable line', () => {
-  const tables = [...Object.values(STRINGS), ...Object.values(THEMES).flatMap((theme) => Object.values(theme.strings))];
-  tables.forEach((table) => {
-    if (table.roundBadge) assert.ok(table.roundBadge.length <= BADGE_MAX_CHARS, `too long: "${table.roundBadge}"`);
-  });
-});
-
-test('every theme rank list matches the number of ranks', () => {
-  Object.values(THEMES).forEach((theme) => {
-    Object.values(theme.strings).forEach((table) => {
-      if (table.ranks) assert.equal(table.ranks.length, STRINGS.tr.ranks.length);
-    });
-  });
 });

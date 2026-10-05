@@ -5,8 +5,6 @@
 // Outputs:
 //   qr/feast-game-qr.svg|png     → QR that opens the game (print this)
 //   qr/feast-game-poster.svg|png → table-tent poster with chef + QR
-//   assets/store-qr.svg          → shown on desktop end screen; phones scanning it
-//                                  are redirected straight to their app store (?dl=1)
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -124,20 +122,17 @@ function toPng(svgPath, pngPath, width) {
 function main() {
   const base = parseGameUrl(process.env.GAME_URL || 'https://oyun.feast.tr/');
   const gameUrl = withParams(base, { src: 'qr' });
-  const storeRedirect = withParams(base, { dl: '1', src: 'desktop_qr' });
 
   mkdirSync(join(ROOT, 'qr'), { recursive: true });
   const files = {
     'qr/feast-game-qr.svg': qrSvg(gameUrl, 1024),
     'qr/feast-game-poster.svg': posterSvg(gameUrl),
-    'assets/store-qr.svg': qrSvg(storeRedirect, 296, { badge: false }),
   };
   Object.entries(files).forEach(([rel, svg]) => writeFileSync(join(ROOT, rel), svg));
   toPng(join(ROOT, 'qr/feast-game-qr.svg'), join(ROOT, 'qr/feast-game-qr.png'), 1024);
   toPng(join(ROOT, 'qr/feast-game-poster.svg'), join(ROOT, 'qr/feast-game-poster.png'), 1240);
 
   console.log(`Game QR    → ${gameUrl}`);
-  console.log(`Desktop QR → ${storeRedirect}`);
   console.log('Wrote:', Object.keys(files).join(', '), '+ PNGs');
 }
 

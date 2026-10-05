@@ -5,7 +5,27 @@
 export const REWARD_CONFIG = Object.freeze({
   // Intro steps 1–5 advance on their own; step 6 (BAŞLA) waits for a tap. ms.
   timings: Object.freeze({ mystery: 2000, swirl: 1500, scribble: 800, brand: 1500, promise: 2500 }),
-  boxOpenMs: 1400, // shake builds up → flash → burst + particles → reward screen
+  boxOpenMs: 1400, // shake builds up → flash → burst + particles → explainer
+
+  // "feast nedir?" explainer between the opened box and the prize page (8 s,
+  // no skipping). Styled after @feast_tr's "feast nedir?" highlight: red
+  // background, white captions, the app inside a phone. One scene per entry. ms.
+  explainer: Object.freeze({ hook: 1000, brand: 1200, map: 1500, reels: 2400, friends: 1900 }),
+
+  // Full-screen dishes in the explainer's Reels-style feed (illustrative
+  // names/prices). Photos: Unsplash (free Unsplash License), 540×960 WebP,
+  // ids: pizza 1593560708920-61dd98c46a4e, burger 1571091718767-18b5b1457add,
+  // sushi 1553621042-f6e147245754, sis 1599487488170-d11ec9c172f0.
+  reels: Object.freeze([
+    { name: 'Burrata Pizza', img: 'assets/reels/pizza.webp', price: 340 },
+    { name: 'Cheeseburger', img: 'assets/reels/burger.webp', price: 285 },
+    { name: 'Sushi Tabağı', img: 'assets/reels/sushi.webp', price: 460 },
+    { name: 'Tavuk Şiş', img: 'assets/reels/sis.webp', price: 260 },
+  ]),
+
+  // Prize page: link to the giveaway rules. Empty = the link stays hidden.
+  termsUrl: '',
+
 
   // Round lost before the 45 s ran out: 'box' = give the box anyway, 'retry' = "Az kaldı!" page with TEKRAR DENE.
   onLose: 'retry',
@@ -14,24 +34,6 @@ export const REWARD_CONFIG = Object.freeze({
   downloadUrl: 'https://get.feast.tr',
 
   campus: Object.freeze({ tr: 'İTÜ', en: 'ITU', maxLength: 24 }),
-
-  // Placeholder friend avatars until real profile artwork arrives.
-  avatars: Object.freeze([
-    { emoji: '👩‍🎓', bg: '#ffd23f' },
-    { emoji: '🧑‍🍳', bg: '#ff8a65' },
-    { emoji: '👨‍🎓', bg: '#7cc4ff' },
-    { emoji: '👩‍💻', bg: '#b69cff' },
-    { emoji: '🧑‍🎤', bg: '#7fe0a8' },
-  ]),
-
-  // Restaurant cards. No logo files yet: Mustachio shows a monogram until one
-  // is added as { img: 'assets/…' }.
-  restaurants: Object.freeze([
-    { name: 'Mustachio', monogram: 'M', bg: '#3a1d10' },
-    { name: 'Burger', img: 'assets/cuisine/burger.webp' },
-    { name: 'Pizza', img: 'assets/cuisine/pizza.webp' },
-    { name: 'Sushi', img: 'assets/cuisine/sushi.webp' },
-  ]),
 
   strings: Object.freeze({
     tr: {
@@ -56,9 +58,19 @@ export const REWARD_CONFIG = Object.freeze({
       boxTitle: 'Sürpriz kutun geldi!',
       boxHint: 'Kutuya dokun, aç 👆',
       boxOpen: 'Ödül kutusunu aç',
-      // Download page (after the box opens)
-      rewardTitle: 'Ödülün hazır!',
-      rewardSub: 'feast\'i indir, {campusLoc} lezzet hikâyenin devamını sen yaz!',
+      // Explainer (after the box opens): "feast nedir?" in six quick scenes
+      exHook: 'Bugün ne yesek?',
+      exSlogan: ['Nerede?', 'Ne?', 'Kaça?'],
+      exMap: 'Yakınındaki tüm mekânlar haritada',
+      exReels: 'Canının çektiğini bulana kadar',
+      exSticker: 'KAYDIR',
+      exSeeMap: 'Haritada Gör',
+      exFriends: 'Arkadaşlarınla yeni tatlar keşfet',
+      exChat: ['Kanka bugün ne yesek?', 'Şuna bak 👇', 'Gidiyoruz! 🔥'],
+      // Prize page (after the explainer)
+      rewardTitle: '3 adet AirPods\u00a05 hediye!', // nbsp: "AirPods 5" never splits
+      rewardSub: 'Uygulamayı indir, {campusLoc} çekilişe katıl! 🎧',
+      rewardTerms: 'Katılım koşulları',
       rewardDownload: 'feast\'i indir',
       rewardTagline: 'Küçük bir adım, büyük bir lezzet',
       rewardPlaceCampus: '📍 {campus}', // Kadıköy and Beşiktaş are plain text in index.html
@@ -91,8 +103,17 @@ export const REWARD_CONFIG = Object.freeze({
       boxTitle: 'A surprise box for you!',
       boxHint: 'Tap the box to open 👆',
       boxOpen: 'Open the reward box',
-      rewardTitle: 'Your reward is ready!',
-      rewardSub: 'Get feast and write the rest of your {campus} food story!',
+      exHook: 'What should we eat today?',
+      exSlogan: ['Where?', 'What?', 'How much?'],
+      exMap: 'Every spot near you, on the map',
+      exReels: 'Until you find what you\'re craving',
+      exSticker: 'SWIPE',
+      exSeeMap: 'See on map',
+      exFriends: 'Discover new flavours with friends',
+      exChat: ['What should we eat today?', 'Look at this 👇', 'Let\'s go! 🔥'],
+      rewardTitle: '3 AirPods\u00a05 to win!',
+      rewardSub: 'Get the app and join the {campus} draw! 🎧',
+      rewardTerms: 'Giveaway rules',
       rewardDownload: 'Get feast',
       rewardTagline: 'A small step, a big feast',
       rewardPlaceCampus: '📍 {campus}',
