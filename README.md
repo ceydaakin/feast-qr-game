@@ -21,7 +21,8 @@ Oyun **her cihazda Türkçe** açılır (tarayıcı dili ne olursa olsun). İngi
 ## Lokal
 ```bash
 npm run serve        # http://localhost:5174
-npm test             # logic.js + squad-logic.js birim testleri (node:test)
+npm test             # birim testleri (node:test)
+npm run e2e          # tarayıcıda uçtan uca akış (önce npm run serve)
 ```
 
 ## QR / poster üretimi
@@ -29,12 +30,12 @@ npm test             # logic.js + squad-logic.js birim testleri (node:test)
 npm install          # sadece qrcode (dev)
 GAME_URL=https://oyun.feast.tr/ npm run qr
 ```
-Çıktılar: `qr/feast-game-qr.{svg,png}` (baskı), `qr/feast-game-poster.{svg,png}` (A6 masa kartı),
-`assets/store-qr.svg` (masaüstü bitiş ekranı). **Domain değişirse `npm run qr` tekrar çalıştır ve deploy et.**
-Kampanya ayırmak için QR'ları farklı `src` ile üretebilirsin (ör. restoran bazlı) — Play referrer'ına taşınır.
+Çıktılar: `qr/feast-game-qr.{svg,png}` (baskı), `qr/feast-game-poster.{svg,png}` (A6 masa kartı).
+**Domain değişirse `npm run qr` tekrar çalıştır ve deploy et.**
+Kampanya ayırmak için QR'ları farklı `src` ile üretebilirsin (ör. restoran bazlı) — analytics event'lerine `source` olarak düşer.
 
 ## Performans notları
-- Toplam ~110 KB asset (şef ekibi, müşteriler ve kapılar prosedürel çizilir; sadece mutfak fotoğrafları + logo WebP), JS ~30 KB, harici font/kütüphane yok.
+- Oyun asset'leri WebP + kendi fontumuz (Baloo 2); harici kütüphane yok. Reels fotoğrafları (`assets/reels/`, ~180 KB) sadece kutu açılınca yüklenir.
 - Canvas DPR ≤ 2, malzemeler açılışta offscreen canvas'a bir kez çizilir; oyun döngüsü sadece `drawImage`.
 - Object pool (varlık/mermi/parçacık/popup), ekranda en fazla 42 şef çizilir (sayı banner’da) → frame başına allocation yok. HUD DOM'u sadece değer değişince güncellenir.
 - Sekme arka plana geçince döngü durur; dönüşte 3-2-1 geri sayımla devam eder.
@@ -43,16 +44,18 @@ Kampanya ayırmak için QR'ları farklı `src` ile üretebilirsin (ör. restoran
 ## Dosyalar
 | Dosya | Görev |
 |---|---|
-| `js/logic.js` | Saf kurallar: mağaza linki, platform, rütbe, dil, mutfaklar (test edilir) |
+| `js/logic.js` | Saf kurallar: platform, dil, şef replikleri, mutfaklar (test edilir) |
 | `js/squad-logic.js` | Ekip kuralları: kapılar, formasyon, hasar, bölüm üretimi, boss, puan (test edilir) |
 | `js/game.js` | Atıcı motoru: perspektif yol, sürükleme, atış, çarpışma, render |
 | `js/crowd-art.js` | Şef ekibi, aç müşteriler, Dev Obur, kapı ve kilitli mekân sprite'ları |
 | `js/fx.js` | Parçacık + uçan yazı havuzları |
 | `js/scenery.js` | Billboard'lar, İstanbul silueti |
 | `js/art.js` | Prosedürel malzeme çizimleri |
-| `js/main.js` | Ekranlar, HUD, mağaza CTA, paylaş, localStorage |
+| `js/main.js` | Ekranlar arası akış (SPA), HUD, indirme butonu, paylaş |
+| `js/flow.js` · `js/reward-ui.js` · `js/reward-config.js` · `reward.css` | Giriş, kutu, "feast nedir?" animasyonu ve ödül sayfası (süreler/metinler config'te) |
+| `js/themes.js` · `js/campus.js` | İTÜ görünümü, kampüs adı (`?campus=`) |
 | `js/i18n.js` | TR (varsayılan) / EN metinler + şefin konuşma satırları (`lines_*`) — pazarlama metinlerini buradan düzenle |
 | `tools/make-qr.mjs` | Markalı QR + poster üretici |
 
 ## Analytics
-`window.dataLayer` varsa (GTM) şu event'ler basılır: `feast_game_view`, `_start`, `_end`, `_store_click`, `_craving` (seçilen mutfak), `_share`, `_store_redirect`.
+`window.dataLayer` varsa (GTM) şu event'ler basılır: `feast_game_view`, `_intro_ready`, `_start`, `_end`, `_retry_offered`, `_box_open`, `_explainer_view`, `_reward_view`, `_store_click`, `_share`.

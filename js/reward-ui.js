@@ -178,34 +178,3 @@ export function playExplainer({ root, steps, t, onDone }) {
   seq.start();
   return seq;
 }
-
-function placeCard(place) {
-  const card = document.createElement('li');
-  card.className = 'place-card';
-  const logo = document.createElement(place.img ? 'img' : 'span');
-  logo.className = 'place-logo';
-  if (place.img) {
-    logo.src = place.img;
-    logo.alt = '';
-  } else {
-    logo.textContent = place.monogram;
-    logo.style.background = place.bg;
-  }
-  const name = document.createElement('b');
-  name.textContent = place.name;
-  card.append(logo, name);
-  return card;
-}
-
-// The download page only shows the score now; avatars / restaurant cards are
-// still filled if a layout includes those elements again.
-export function renderReward({ avatarsEl = null, placesEl = null, scoreEl, scoreText }) {
-  avatarsEl?.replaceChildren(...REWARD_CONFIG.avatars.map((a) => {
-    const el = document.createElement('span');
-    el.style.background = a.bg;
-    el.textContent = a.emoji;
-    return el;
-  }));
-  placesEl?.replaceChildren(...REWARD_CONFIG.restaurants.map(placeCard));
-  scoreEl.textContent = scoreText;
-}

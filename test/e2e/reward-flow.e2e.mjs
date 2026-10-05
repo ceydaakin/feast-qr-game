@@ -59,16 +59,10 @@ const showOnly = (page, id) => page.evaluate((want) => {
 
 // Test-only: jump straight to a filled reward screen (skips a 45 s round).
 const forceReward = (page) => page.evaluate(async () => {
-  const { renderReward } = await import('/js/reward-ui.js');
   const { makeT } = await import('/js/i18n.js');
   const { pickTheme } = await import('/js/themes.js'); const { themeStringsWithReward } = await import('/js/campus.js');
   const t = makeT(document.documentElement.lang, themeStringsWithReward(pickTheme('itu'), new URLSearchParams(location.search).get('campus')));
-  renderReward({
-    avatarsEl: document.getElementById('reward-avatars'),
-    placesEl: document.getElementById('reward-places'),
-    scoreEl: document.getElementById('reward-score'),
-    scoreText: t('rewardScore', { score: 1688 }),
-  });
+  document.getElementById('reward-score').textContent = t('rewardScore', { score: 1688 });
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('is-active', s.id === 'reward'));
 });
 

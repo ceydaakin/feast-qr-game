@@ -1,7 +1,7 @@
 // UI wiring: screens, HUD, store CTA, persistence. Game rules live in logic.js.
 
 import {
-  CUISINES, detectPlatform, storeUrl, pickLocale, pickLine,
+  CUISINES, detectPlatform, pickLocale, pickLine,
 } from './logic.js';
 import { makeT } from './i18n.js';
 import { pickTheme } from './themes.js';
@@ -10,7 +10,7 @@ import { createGame } from './game.js';
 import { introPlan, EXPLAINER_STEPS } from './flow.js';
 import { REWARD_CONFIG } from './reward-config.js';
 import { themeStringsWithReward } from './campus.js';
-import { playIntro, openBoxScreen, renderReward, playExplainer } from './reward-ui.js';
+import { playIntro, openBoxScreen, playExplainer } from './reward-ui.js';
 import { loadSpriteOverrides } from './sprites.js';
 import { setGameFont, loadGameFont } from './fonts.js';
 
@@ -24,13 +24,6 @@ const $ = (sel) => document.querySelector(sel);
 const params = new URLSearchParams(location.search);
 const source = (params.get('src') || 'qr_game').replace(/[^\w-]/g, '').slice(0, 40) || 'qr_game';
 const platform = detectPlatform(navigator.userAgent, navigator.maxTouchPoints);
-const STORE_URL = storeUrl(platform, source);
-
-// Smart link: the desktop QR points at "?dl=1" so phones jump straight to their store.
-if (params.get('dl') === '1' && STORE_URL) {
-  track('store_redirect', { platform });
-  location.replace(STORE_URL);
-}
 
 const locale = pickLocale(params.get('lang'));
 // One game: the İTÜ reward flow (intro → 45 s round → box → explainer → prize)
@@ -61,11 +54,7 @@ function storage(action, key, value) {
 
 function applyStrings() {
   document.querySelectorAll('[data-i18n]').forEach((el) => {
-    // Platform-aware copy: "App Store'dan indir" vs "Google Play'den indir".
-    const key = el.dataset.i18n;
-    const specific = `${key}_${platform}`;
-    const hasSpecific = 'i18nPlatform' in el.dataset && t(specific) !== specific;
-    el.textContent = t(hasSpecific ? specific : key);
+    el.textContent = t(el.dataset.i18n);
   });
   document.title = `${t('title')} · feast.`;
   document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
@@ -85,7 +74,6 @@ function makeChatter() {
     return text;
   };
 }
-
 
 function loadImage(src) {
   return new Promise((resolve) => {
@@ -203,12 +191,7 @@ function showExplainer(result) {
 }
 
 function showReward(result) {
-  renderReward({
-    avatarsEl: $('#reward-avatars'),
-    placesEl: $('#reward-places'),
-    scoreEl: $('#reward-score'),
-    scoreText: t('rewardScore', { score: result.score }),
-  });
+  $('#reward-score').textContent = t('rewardScore', { score: result.score });
   $('#reward').scrollTo(0, 0);
   showScreen('reward');
   track('reward_view', { score: result.score });
@@ -291,7 +274,6 @@ async function boot() {
   setupRewardStores();
   setupMute();
   preventPageGestures();
-
 
   const [cuisineImages] = await Promise.all([
     Promise.all(CUISINES.map((c) => loadImage(c.img))),

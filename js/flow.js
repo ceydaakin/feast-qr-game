@@ -30,10 +30,6 @@ export const REWARD_KEYS = Object.freeze([
   'retryTitle', 'retrySub', 'retryButton', 'retryTip', 'rewardScore',
 ]);
 
-export function pickFlow(theme) {
-  return theme?.flow === 'reward' ? 'reward' : 'classic';
-}
-
 // The spiral intro plays on every visit (tap skips it). Only visitors who
 // asked their device for reduced motion go straight to BAŞLA.
 export function introPlan({ reducedMotion }) {

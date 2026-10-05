@@ -35,24 +35,6 @@ export const REWARD_CONFIG = Object.freeze({
 
   campus: Object.freeze({ tr: 'İTÜ', en: 'ITU', maxLength: 24 }),
 
-  // Placeholder friend avatars until real profile artwork arrives.
-  avatars: Object.freeze([
-    { emoji: '👩‍🎓', bg: '#ffd23f' },
-    { emoji: '🧑‍🍳', bg: '#ff8a65' },
-    { emoji: '👨‍🎓', bg: '#7cc4ff' },
-    { emoji: '👩‍💻', bg: '#b69cff' },
-    { emoji: '🧑‍🎤', bg: '#7fe0a8' },
-  ]),
-
-  // Restaurant cards. No logo files yet: Mustachio shows a monogram until one
-  // is added as { img: 'assets/…' }.
-  restaurants: Object.freeze([
-    { name: 'Mustachio', monogram: 'M', bg: '#3a1d10' },
-    { name: 'Burger', img: 'assets/cuisine/burger.webp' },
-    { name: 'Pizza', img: 'assets/cuisine/pizza.webp' },
-    { name: 'Sushi', img: 'assets/cuisine/sushi.webp' },
-  ]),
-
   strings: Object.freeze({
     tr: {
       introLead: '{campusPlural} özel',

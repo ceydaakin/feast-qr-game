@@ -3,7 +3,7 @@
 // everything else keeps the system rounded stack. `FONT` is a live binding:
 // renderers read it when they draw, after main.js has called setGameFont().
 
-export const SYSTEM_FONT = 'ui-rounded, system-ui, -apple-system, sans-serif';
+const SYSTEM_FONT = 'ui-rounded, system-ui, -apple-system, sans-serif';
 // eslint-disable-next-line import/no-mutable-exports
 export let FONT = SYSTEM_FONT;
 

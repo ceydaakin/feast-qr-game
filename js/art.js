@@ -328,7 +328,7 @@ function stampNo(ctx) {
 // True when this food can be shown: drawn procedurally or loaded as an image.
 export const canDrawFood = (kind) => Boolean(PAINTERS[kind] || spriteOverride(kind));
 
-export function renderSprite(kind, sizePx, isBad) {
+function renderSprite(kind, sizePx, isBad) {
   const canvas = document.createElement('canvas');
   canvas.width = sizePx;
   canvas.height = sizePx;
@@ -355,57 +355,4 @@ export function renderSprite(kind, sizePx, isBad) {
 
 export function buildSpriteCache(kinds, sizePx, isBadFn) {
   return Object.fromEntries(kinds.map((k) => [k, renderSprite(k, sizePx, isBadFn(k))]));
-}
-
-// Warm kitchen backdrop: cream wall with brand-red awning and a tiled counter.
-export function renderBackground(w, h, dpr) {
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.round(w * dpr);
-  canvas.height = Math.round(h * dpr);
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-
-  const wall = ctx.createLinearGradient(0, 0, 0, h);
-  wall.addColorStop(0, '#fff6e8');
-  wall.addColorStop(1, '#ffe7cc');
-  ctx.fillStyle = wall;
-  ctx.fillRect(0, 0, w, h);
-
-  // soft polka dots
-  ctx.fillStyle = 'rgba(255,49,49,0.06)';
-  for (let y = 40; y < h * 0.8; y += 46) {
-    for (let x = (y / 46) % 2 ? 23 : 0; x < w + 46; x += 46) {
-      ctx.beginPath();
-      ctx.arc(x, y, 5, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  // awning scallops
-  const stripe = Math.max(28, w / 10);
-  const awningH = 26;
-  for (let x = 0, i = 0; x < w; x += stripe, i++) {
-    ctx.fillStyle = i % 2 ? '#ffffff' : '#ff3131';
-    ctx.fillRect(x, 0, stripe, awningH);
-    ctx.beginPath();
-    ctx.arc(x + stripe / 2, awningH, stripe / 2, 0, Math.PI);
-    ctx.fill();
-  }
-  ctx.fillStyle = 'rgba(0,0,0,0.08)';
-  ctx.fillRect(0, awningH + stripe / 2, w, 3);
-
-  // counter tiles
-  const counterY = h * 0.9;
-  const tile = 26;
-  for (let y = counterY, r = 0; y < h; y += tile, r++) {
-    for (let x = 0, c = 0; x < w; x += tile, c++) {
-      ctx.fillStyle = (r + c) % 2 ? '#ff3131' : '#fff4ec';
-      ctx.fillRect(x, y, tile, tile);
-    }
-  }
-  ctx.fillStyle = '#c9a27a';
-  ctx.fillRect(0, counterY - 8, w, 8);
-  ctx.fillStyle = 'rgba(0,0,0,0.12)';
-  ctx.fillRect(0, counterY, w, 4);
-  return canvas;
 }
