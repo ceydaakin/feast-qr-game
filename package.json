@@ -7,12 +7,10 @@
     "qr": "node tools/make-qr.mjs",
     "serve": "python3 -m http.server 5174",
     "e2e": "node test/e2e/reward-flow.e2e.mjs",
-    "deploy": "wrangler deploy",
-    "preview": "wrangler dev"
+    "build": "rm -rf dist && mkdir -p dist && cp index.html styles.css reward.css dist/ && cp -R js assets dist/"
   },
   "devDependencies": {
     "playwright-core": "^1.63.0",
-    "qrcode": "^1.5.4",
-    "wrangler": "^4.147.0"
+    "qrcode": "^1.5.4"
   }
 }

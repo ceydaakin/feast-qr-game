@@ -1,0 +1,11 @@
+{
+  "name": "feast-qr-game-dist",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.147.0"
+  }
+}
