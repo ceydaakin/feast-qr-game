@@ -2,6 +2,7 @@
 
 import { createSequencer, createBoxState } from './flow.js';
 import { REWARD_CONFIG } from './reward-config.js';
+import { sfx } from './audio.js';
 
 const SPARKS = 14; // particles in the box's light burst
 const HAPTIC_OPEN = [15, 30, 25, 30, 40, 30, 90]; // builds up with the shake, big thump on the burst
@@ -167,6 +168,7 @@ export function playExplainer({ root, steps, t, onDone }) {
       const i = steps.findIndex((s) => s.id === id);
       root.style.setProperty('--step-ms', `${steps[i].ms}ms`);
       root.dataset.step = id;
+      sfx.scene(id, { words: t('exHook').split(' ').length });
       restart(cam, 'is-cut');
       restart(flash, 'is-cut');
       bars.forEach((bar, j) => {
