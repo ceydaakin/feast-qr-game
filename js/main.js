@@ -1,21 +1,19 @@
 // UI wiring: screens, HUD, store CTA, persistence. Game rules live in logic.js.
 
 import {
-  CUISINES, detectPlatform, storeUrl, rankFor, pickLocale, pickLine,
+  CUISINES, detectPlatform, storeUrl, pickLocale, pickLine,
 } from './logic.js';
 import { makeT } from './i18n.js';
 import { pickTheme } from './themes.js';
 import { sfx } from './audio.js';
 import { createGame } from './game.js';
-import { buildLegendIcons } from './crowd-art.js';
-import { pickFlow, introPlan } from './flow.js';
+import { introPlan, EXPLAINER_STEPS } from './flow.js';
 import { REWARD_CONFIG } from './reward-config.js';
 import { themeStringsWithReward } from './campus.js';
-import { playIntro, openBoxScreen, renderReward } from './reward-ui.js';
+import { playIntro, openBoxScreen, renderReward, playExplainer } from './reward-ui.js';
 import { loadSpriteOverrides } from './sprites.js';
 import { setGameFont, loadGameFont } from './fonts.js';
 
-const BEST_KEY = 'feast-game.best.v1';
 const MUTE_KEY = 'feast-game.muted.v1';
 const INTRO_SEEN_KEY = 'feast-game.intro-seen.v1';
 const BUMP_MIN = 5;
@@ -35,14 +33,15 @@ if (params.get('dl') === '1' && STORE_URL) {
 }
 
 const locale = pickLocale(params.get('lang'));
-const theme = pickTheme(source);
-const flow = pickFlow(theme);
-// Reward flow copy comes from reward-config.js with ?campus= filled in (default İTÜ).
-const t = makeT(locale, flow === 'reward' ? themeStringsWithReward(theme, params.get('campus')) : theme?.strings);
+// One game: the İTÜ reward flow (intro → 45 s round → box → explainer → prize)
+// opens on every link. `src` is only kept for analytics / the store referrer.
+const theme = pickTheme('itu');
+// Reward copy comes from reward-config.js with ?campus= filled in (default İTÜ).
+const t = makeT(locale, themeStringsWithReward(theme, params.get('campus')));
 document.documentElement.lang = locale;
 // Theme hook for CSS (İTÜ: html[data-theme="itu"] switches the page font) and
 // the canvas font stack; must happen before the game builds its text sprites.
-if (theme) document.documentElement.dataset.theme = theme.id;
+document.documentElement.dataset.theme = theme.id;
 setGameFont(theme?.font);
 
 function track(event, data = {}) {
@@ -68,10 +67,6 @@ function applyStrings() {
     const hasSpecific = 'i18nPlatform' in el.dataset && t(specific) !== specific;
     el.textContent = t(hasSpecific ? specific : key);
   });
-  // The round badge stays on one line; CSS shrinks its font by text length
-  // (themes like İTÜ have much longer copy). +2 accounts for the ⏱ icon.
-  const badge = $('.round-badge');
-  badge?.style.setProperty('--badge-len', String(t('roundBadge').length + 2));
   document.title = `${t('title')} · feast.`;
   document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
     el.setAttribute('aria-label', t(el.dataset.i18nAria));
@@ -79,17 +74,6 @@ function applyStrings() {
   document.querySelectorAll('[data-i18n-alt]').forEach((el) => {
     el.alt = t(el.dataset.i18nAlt);
   });
-}
-
-function renderLegend() {
-  const icons = buildLegendIcons(Math.min(window.devicePixelRatio || 1, 2), theme?.art);
-  const place = (host, sprites) => sprites.forEach((sprite) => {
-    sprite.className = 'legend-icon legend-wide';
-    sprite.setAttribute('aria-hidden', 'true');
-    $(`[data-legend="${host}"]`).appendChild(sprite);
-  });
-  place('gates', [icons.gate, icons.gateBad]);
-  place('eaters', [icons.eater, icons.big]);
 }
 
 // Chef lines per game event, never repeating the previous line for that event.
@@ -102,65 +86,6 @@ function makeChatter() {
   };
 }
 
-// Rotating feast. benefits under the Play button (only ticks while visible).
-function startTicker() {
-  const el = $('#ticker-text');
-  const lines = t('ticker');
-  let prev = -1;
-  const next = () => {
-    if (!$('#start').classList.contains('is-active')) return;
-    const { text, index } = pickLine(lines, prev);
-    prev = index;
-    el.classList.remove('in');
-    void el.offsetWidth;
-    el.textContent = text;
-    el.classList.add('in');
-  };
-  next();
-  setInterval(next, 2800);
-}
-
-// "Canın ne çekiyor?" — picking a cuisine personalises the download pitch.
-function setupCraving() {
-  const grid = $('#craving-grid');
-  CUISINES.forEach((c) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'craving-item';
-    btn.dataset.cuisine = c.id;
-    const img = document.createElement('img');
-    img.src = c.img;
-    img.alt = '';
-    img.width = 88;
-    img.height = 88;
-    img.loading = 'lazy';
-    const label = document.createElement('span');
-    label.textContent = t(`cuisine_${c.id}`);
-    btn.append(img, label);
-    btn.addEventListener('click', () => pickCraving(c.id));
-    grid.appendChild(btn);
-  });
-}
-
-function pickCraving(id) {
-  document.querySelectorAll('.craving-item').forEach((b) => {
-    b.classList.toggle('is-picked', b.dataset.cuisine === id);
-  });
-  const title = $('#cta-title');
-  title.textContent = t('cravingCta', { c: t(`cuisine_${id}`) });
-  const cta = $('#cta');
-  cta.classList.remove('flash');
-  void cta.offsetWidth;
-  cta.classList.add('flash');
-  cta.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  if (navigator.vibrate) navigator.vibrate(15);
-  track('craving', { cuisine: id });
-}
-
-function resetCraving() {
-  document.querySelectorAll('.craving-item').forEach((b) => b.classList.remove('is-picked'));
-  $('#cta-title').textContent = t('ctaTitle');
-}
 
 function loadImage(src) {
   return new Promise((resolve) => {
@@ -175,19 +100,6 @@ function loadImage(src) {
   });
 }
 
-function setupStoreLinks() {
-  document.querySelectorAll('[data-store]').forEach((a) => {
-    if (STORE_URL) {
-      a.href = STORE_URL;
-      a.addEventListener('click', () => track('store_click', { platform, from: a.dataset.store }));
-    } else {
-      a.hidden = true;
-    }
-  });
-  document.querySelectorAll('[data-store-only]').forEach((el) => { el.hidden = !STORE_URL; });
-  document.querySelectorAll('[data-desktop-only]').forEach((el) => { el.hidden = Boolean(STORE_URL); });
-}
-
 // Download page: one yellow "feast'i indir" button → get.feast.tr on every
 // device (that page sends people on to the right store).
 function setupRewardStores() {
@@ -195,6 +107,11 @@ function setupRewardStores() {
   if (!main) return;
   main.href = REWARD_CONFIG.downloadUrl;
   main.addEventListener('click', () => track('store_click', { platform, from: 'reward_main' }));
+  const terms = $('[data-terms]');
+  if (terms && REWARD_CONFIG.termsUrl) {
+    terms.href = REWARD_CONFIG.termsUrl;
+    terms.hidden = false;
+  }
 }
 
 function showScreen(id) {
@@ -244,21 +161,6 @@ function countUp(el, to) {
   requestAnimationFrame(step);
 }
 
-function showGameOver(result, best, isNewBest) {
-  $('#over-title').textContent = t(`over_${result.reason}`);
-  $('#over-rank').textContent = t('ranks')[rankFor(result.score)];
-  $('#over-stats').textContent = t('stats', { distance: result.distance, fed: result.fed, peak: result.peak });
-  const disc = $('#over-discovered');
-  disc.hidden = !result.discovered;
-  disc.textContent = t('discovered', { n: result.discovered });
-  resetCraving();
-  $('#over').scrollTo(0, 0);
-  $('#over-best').textContent = isNewBest ? t('newBest') : `${t('best')}: ${best}`;
-  $('#over-best').classList.toggle('is-new', isNewBest);
-  countUp($('#over-score'), result.score);
-  showScreen('over');
-}
-
 // Lost before time ran out: the config decides between the box anyway and a retry.
 function endRewardRound(result) {
   if (result.reason !== 'time' && REWARD_CONFIG.onLose === 'retry') {
@@ -283,10 +185,21 @@ function showBox(result) {
     button: $('#btn-box'),
     onOpened: () => {
       track('box_open', { score: result.score });
-      showReward(result);
+      showExplainer(result);
     },
   });
   showScreen('box');
+}
+
+// "feast nedir?" in ~12 s, then the AirPods page. Reduced motion skips it.
+function showExplainer(result) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    showReward(result);
+    return;
+  }
+  showScreen('explainer');
+  track('explainer_view');
+  playExplainer({ root: $('#explainer'), steps: EXPLAINER_STEPS, t, onDone: () => showReward(result) });
 }
 
 function showReward(result) {
@@ -302,8 +215,7 @@ function showReward(result) {
 }
 
 async function share(score, btn) {
-  // Keep the event theme on shared links so friends get the same version.
-  const url = `${location.origin}${location.pathname}${theme ? `?src=${theme.id}` : ''}`;
+  const url = `${location.origin}${location.pathname}`;
   const text = t('shareText', { score });
   track('share', { score });
   try {
@@ -375,17 +287,11 @@ function startRewardIntro() {
 
 async function boot() {
   applyStrings();
-  if (flow === 'reward') startRewardIntro();
-  renderLegend();
-  setupStoreLinks();
+  startRewardIntro();
   setupRewardStores();
   setupMute();
-  setupCraving();
   preventPageGestures();
-  startTicker();
 
-  let best = Number(storage('get', BEST_KEY)) || 0;
-  $('#start-best').textContent = best ? `${t('best')}: ${best}` : '';
 
   const [cuisineImages] = await Promise.all([
     Promise.all(CUISINES.map((c) => loadImage(c.img))),
@@ -406,13 +312,8 @@ async function boot() {
     onHud: makeHud(),
     onEnd: (result) => {
       lastScore = result.score;
-      const isNewBest = result.score > best;
-      if (isNewBest) {
-        best = result.score;
-        storage('set', BEST_KEY, String(best));
-      }
       track('end', { score: result.score, reason: result.reason });
-      setTimeout(() => (flow === 'reward' ? endRewardRound(result) : showGameOver(result, best, isNewBest)), 450);
+      setTimeout(() => endRewardRound(result), 450);
     },
   });
 
@@ -430,11 +331,8 @@ async function boot() {
     track('start');
     game.start();
   };
-  $('#btn-play').addEventListener('click', play);
-  if (flow === 'reward') {
-    rewardStart.play = play;
-    if (rewardStart.queued) play();
-  }
+  rewardStart.play = play;
+  if (rewardStart.queued) play();
   document.querySelectorAll('[data-action="again"]').forEach((b) => b.addEventListener('click', play));
   const canShare = Boolean(navigator.share || navigator.clipboard);
   document.querySelectorAll('[data-action="share"]').forEach((b) => {

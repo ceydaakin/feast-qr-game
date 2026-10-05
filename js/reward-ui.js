@@ -105,6 +105,80 @@ export function openBoxScreen({ root, button, onOpened, openMs = REWARD_CONFIG.b
   };
 }
 
+// ---------- "feast nedir?" explainer ----------
+const span = (text, className = '') => {
+  const el = document.createElement('span');
+  if (className) el.className = className;
+  el.textContent = text;
+  return el;
+};
+
+// Copy, reels and chat are filled once; the scenes are CSS on data-step.
+function fillExplainer(root, t) {
+  if (root.dataset.filled) return;
+  root.dataset.filled = '1';
+  // Hook: one word per beat (hard cuts, --i drives the delay).
+  root.querySelector('.ex-hook').append(...t('exHook').split(' ').map((w, i) => {
+    const el = span(w);
+    el.style.setProperty('--i', i);
+    return el;
+  }));
+  root.querySelector('.ex-words').append(...t('exSlogan').map((w) => span(w)));
+  root.querySelector('.ex-reel-track').append(...REWARD_CONFIG.reels.map((r) => {
+    const reel = document.createElement('div');
+    reel.className = 'ex-reel';
+    const img = document.createElement('img');
+    img.src = r.img;
+    img.alt = '';
+    const info = document.createElement('div');
+    info.className = 'ex-reel-info';
+    info.append(span(r.name, 'ex-reel-name'), span(`₺${r.price}`, 'ex-reel-price'), span(t('exSeeMap'), 'ex-reel-btn'));
+    const side = document.createElement('div');
+    side.className = 'ex-reel-side';
+    side.append(span('♥', 'ex-like'), span('💬'), span('➤'));
+    reel.append(img, info, side);
+    return reel;
+  }));
+  const chat = t('exChat');
+  root.querySelectorAll('.ex-msg:not(.ex-share)').forEach((el, i) => { el.textContent = chat[i] ?? ''; });
+}
+
+// Re-trigger a one-shot CSS animation (camera punch, white flash) on every cut.
+function restart(el, className) {
+  el.classList.remove(className);
+  void el.offsetWidth; // reflow so the animation starts again
+  el.classList.add(className);
+}
+
+// Plays the scenes from EXPLAINER_STEPS, then calls onDone once. No skipping:
+// it runs its 8 s like a video.
+export function playExplainer({ root, steps, t, onDone }) {
+  fillExplainer(root, t);
+  const bars = [...root.querySelectorAll('.ex-progress i')];
+  const cam = root.querySelector('.ex-cam');
+  const flash = root.querySelector('.ex-flash');
+  const seq = createSequencer({
+    steps,
+    onStep: (id) => {
+      if (id === 'done') {
+        onDone();
+        return;
+      }
+      const i = steps.findIndex((s) => s.id === id);
+      root.style.setProperty('--step-ms', `${steps[i].ms}ms`);
+      root.dataset.step = id;
+      restart(cam, 'is-cut');
+      restart(flash, 'is-cut');
+      bars.forEach((bar, j) => {
+        bar.classList.toggle('is-done', j < i);
+        bar.classList.toggle('is-on', j === i);
+      });
+    },
+  });
+  seq.start();
+  return seq;
+}
+
 function placeCard(place) {
   const card = document.createElement('li');
   card.className = 'place-card';

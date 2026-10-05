@@ -4,18 +4,16 @@ QR → mobil web oyunu → oyun sonunda **feast'i indir** yönlendirmesi.
 Build yok, bağımlılık yok (runtime). Statik dosyalar; herhangi bir CDN / Cloudflare Pages'e atılır.
 
 ## Akış
-1. Kullanıcı masadaki/posterdeki QR'ı okutur → `https://<GAME_URL>/?src=qr`
-2. **Kalabalık atıcı (Last Z / "kapı" reklamları tarzı):** Bıyıklı Şef'in ekibi yolda ilerler; parmağı sağa-sola sürükleyerek ekibi yönlendirirsin (masaüstünde ← → / A D). Şefler kendiliğinden ileri yemek (domates, peynir, sucuk…) fırlatır.
-   - **feast. kapıları:** yeşil `+N` / `×2` / `×3` ekibi büyütür, kırmızı `-N` / `÷2` küçültür. Ekibin merkezi hangi yarıdaysa o kapıdan geçer.
-   - **Aç kalabalık:** yemekle vurulan müşteri doyar (😋, puan). Doymadan ekibe değen her aç müşteri şef kapar; büyük "OBUR"lar daha çok.
-   - **Kilitli mekân:** uygulamanın mutfak fotoğrafı + HP sayısı. Kırınca "YENİ MEKÂN: Döner! 📍", keşfedilen restoran sayacı ve ekibe yeni şefler. Kırılamazsa çarpınca şef kaybedilir.
-   - **Dev Obur (boss):** 13. bölümden sonra her 7 bölümde bir. Doyurursan büyük ödül; değerse ekip biter.
-   - Ekip 0 olunca oyun biter. Puan = metre + doyurulan × 10 + keşfedilen restoran × 100 + en kalabalık ekip.
-   - **Pazarlama katmanı:** kapılarda feast. logosu, yol kenarında "feast'te keşfet!" billboard'ları, şefin konuşma balonları (kapı, keşif, boss, ~8 sn'de bir feast. mesajı), başlangıç ekranında faydalar ticker'ı.
-3. Oyun sonu: puan + rütbe + "📍 N yeni restoran keşfettin" + **"Canın ne çekiyor?"** mutfak seçimi (seçince indirme başlığı kişiselleşir: "Yakınındaki en iyi Döner mekânları feast'te!") + "Şefin tavsiyesi: Bunu kesin indir!" etiketi + **indirme kartı** (neden indirmeli maddeleri, platforma göre buton, 3 adımlı indirme rehberi) + **her cihazda görünen uygulama QR'ı**: "İndir, eğlenceye devam et! Restoranda postlarını paylaş…" (telefonda "masadaki arkadaşların da okutsun").
-   - iPhone/iPad → `https://apps.apple.com/tr/app/feast/id6762010641`
-   - Android → Play Store `com.feast.mobile` (`referrer=utm_source=<src>` ile install kaynağı ölçülür)
-   - Masaüstü → buton yok, sadece QR (`?dl=1` → telefonda direkt mağazaya atar)
+Tek oyun var; her link aynı akışı açar (`?src=` sadece analytics / mağaza referrer'ı için tutulur, `?campus=ODTÜ` kampüs adını değiştirir).
+1. Kullanıcı QR'ı okutur → `https://<GAME_URL>/?src=qr`
+2. **Giriş:** sarmal → feast logosu → "45 sn dayan, ÖDÜLÜ AL" + **BAŞLA** (dokununca giriş atlanır).
+3. **45 sn oyun:** Bıyıklı Şef'in ekibini sağa-sola sürükle (masaüstünde ← → / A D); yeşil kapılar ekibi büyütür, kırmızılar küçültür; aç kalabalığı yemekle doyur, kilitli mekânları kır, Dev Obur'u doyur.
+   - Süre dolmadan ekip biterse → **"Az kaldı!"** sayfası + TEKRAR DENE.
+4. **Sürpriz kutu** → dokununca açılır.
+5. **"feast nedir?" animasyonu (8 sn, atlanamaz):** @feast_tr "feast nedir?" öne çıkanı stilinde — "Bugün ne yesek?" → "Nerede? Ne? Kaça?" → harita → KAYDIR (Reels gibi tam ekran yemekler) → arkadaş sohbeti. Hareketi azaltmış cihazlar doğrudan ödül sayfasına geçer.
+6. **Ödül sayfası:** "3 adet AirPods 5 hediye!" + **feast'i indir** (her cihazda `https://get.feast.tr`).
+
+Süreler, metinler, Reels yemekleri, çekiliş koşulları linki (`termsUrl`): `js/reward-config.js`.
 
 ## Dil
 Oyun **her cihazda Türkçe** açılır (tarayıcı dili ne olursa olsun). İngilizce sürüm için linke `?lang=en` ekle. Tüm metinler `js/i18n.js` içinde (`tr` kaynak, `en` çeviri).
