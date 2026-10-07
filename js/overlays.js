@@ -31,9 +31,16 @@ export function createOverlays({ font, colors }) {
   // ---------- count banner ----------
   function renderBanner(count) {
     const k = BANNER_MAX_POP;
-    const text = `👨‍🍳 ${count}`;
+    // Emoji and number are measured and drawn separately, each squeezed into its
+    // measured box (fillText maxWidth): iOS Safari mis-measures the ZWJ chef
+    // emoji, so the old single centred string spilled out of the pill.
+    const num = String(count);
     const f = `900 ${Math.round(20 * k)}px ${font}`;
-    const w = measure(text, f) + 22 * k;
+    const iconW = 24 * k;
+    const gap = 5 * k;
+    const side = 11 * k;
+    const numW = measure(num, f);
+    const w = side * 2 + iconW + gap + numW;
     const h = 30 * k;
     const pad = 3;
     makeCanvas(w + pad * 2, h + pad * 2, dpr, bannerCanvas); // reuses the one canvas
@@ -46,9 +53,11 @@ export function createOverlays({ font, colors }) {
     ctx.stroke();
     ctx.font = f;
     ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'center';
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, pad + w / 2, pad + h / 2 + k);
+    const ty = pad + h / 2 + k;
+    ctx.fillText('👨‍🍳', pad + side, ty, iconW);
+    ctx.fillText(num, pad + side + iconW + gap, ty, numW);
     bannerW = (w + pad * 2) / k;
     bannerH = (h + pad * 2) / k;
     bannerFor = count;
