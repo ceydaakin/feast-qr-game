@@ -11,7 +11,7 @@ export const THEMES = Object.freeze({
     font: '"Baloo 2"',
     // Start-of-round tutorial: just two short lines in one white card.
     tutorial: { lines: ['tutDrag', 'tutGates'], card: true },
-    maxSquad: 99999, // chef counter keeps going past 999 (base game stops at 999)
+    maxSquad: 999999, // chef counter keeps going past 999 (base game stops at 999); 6 digits fit the banner and HUD
     art: {
       eaterLabel: 'İTÜ',
       shirts: ITU_BLUE,

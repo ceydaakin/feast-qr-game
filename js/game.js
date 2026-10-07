@@ -309,7 +309,7 @@ export function createGame({ canvas, places, theme = null, locale = 'tr', sfx, t
   const chefScale = theme?.art?.chefScale || 1;
   const squadTopY = () => yAt(SQUAD_Z) - laneW * scaleAt(SQUAD_Z) * 0.75 * chefScale;
 
-  // Squad cap: 999 in the base game, raised by themes (İTÜ: 99 999) so the
+  // Squad cap: 999 in the base game, raised by themes (İTÜ: 999 999) so the
   // counter keeps climbing past 999.
   const maxSquad = theme?.maxSquad || SQUAD.maxCount;
 
