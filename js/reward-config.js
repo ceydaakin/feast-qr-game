@@ -23,8 +23,8 @@ export const REWARD_CONFIG = Object.freeze({
     { name: 'Tavuk Şiş', img: 'assets/reels/sis.webp', price: 260 },
   ]),
 
-  // Prize page: link to the giveaway rules. Empty = the link stays hidden.
-  termsUrl: '',
+  // "Detaylar" link on the prize page → the contest rules page. Empty = hidden.
+  termsUrl: 'sartname.html',
 
 
   // Round lost before the 45 s ran out: 'box' = give the box anyway, 'retry' = "Az kaldı!" page with TEKRAR DENE.
@@ -42,7 +42,7 @@ export const REWARD_CONFIG = Object.freeze({
       introHot: 'ÖDÜLLE',
       introTail: 'başla',
       readyMain: '45 sn dayan',
-      readyHot: 'ÖDÜLÜ AL',
+      readyHot: 'SÜRPRİZİ GÖR!',
       readyPlay: 'BAŞLA ▶',
       // Faint thought bubbles behind the BAŞLA screen (the questions feast answers).
       readyBubbles: [
@@ -69,8 +69,19 @@ export const REWARD_CONFIG = Object.freeze({
       exChat: ['Kanka bugün ne yesek?', 'Şuna bak 👇', 'Gidiyoruz! 🔥'],
       // Prize page (after the explainer)
       rewardTitle: '3 adet AirPods\u00a05 hediye!', // nbsp: "AirPods 5" never splits
-      rewardSub: 'Uygulamayı indir, {campusLoc} çekilişe katıl! 🎧',
-      rewardTerms: 'Katılım koşulları',
+      rewardSub: 'Uygulamayı indir, hesabını aç! 🎧',
+      rewardTerms: 'Detaylar',
+      // Contest codes on the prize page (js/contest.js)
+      codeValidNote: 'Kodunuzun geçerli olması için uygulamayı indirip hesap açmayı unutmayın.',
+      codeLabel: 'Yarışmacı kodun',
+      secretLabel: 'Gizli kodun · kimseyle paylaşma',
+      codeNotice: 'Bu ekranın görüntüsünü şimdi al ve sakla. Kodlar hiçbir yerde saklanmaz ve tekrar gösterilmez.',
+      codeAnnounce: 'Kazananların yarışmacı kodları Instagram\'daki @feast_tr hesabından duyurulacak.',
+      codePending: 'Kodların kaydediliyor…',
+      codeError: 'Kodların kaydedilemedi. Bağlantını kontrol edip tekrar dene.',
+      codeRetry: 'Tekrar dene',
+      contestClosed: 'Yarışma sona erdi. Kazananlar Instagram\'daki @feast_tr hesabından duyurulacak.',
+      againConfirm: 'Kodlarının ekran görüntüsünü aldın mı?',
       rewardDownload: 'feast\'i indir',
       rewardTagline: 'Küçük bir adım, büyük bir lezzet',
       rewardPlaceCampus: '📍 {campus}', // Kadıköy and Beşiktaş are plain text in index.html
@@ -88,7 +99,7 @@ export const REWARD_CONFIG = Object.freeze({
       introHot: 'WITH A REWARD',
       introTail: 'on feast',
       readyMain: 'Survive 45 seconds',
-      readyHot: 'CLAIM THE REWARD',
+      readyHot: 'SEE THE SURPRISE!',
       readyPlay: 'START ▶',
       readyBubbles: [
         'What should we eat today? 🤔',
@@ -112,8 +123,18 @@ export const REWARD_CONFIG = Object.freeze({
       exFriends: 'Discover new flavours with friends',
       exChat: ['What should we eat today?', 'Look at this 👇', 'Let\'s go! 🔥'],
       rewardTitle: '3 AirPods\u00a05 to win!',
-      rewardSub: 'Get the app and join the {campus} draw! 🎧',
-      rewardTerms: 'Giveaway rules',
+      rewardSub: 'Get the app and create your account! 🎧',
+      rewardTerms: 'Details',
+      codeValidNote: 'For your code to be valid, don\'t forget to download the app and create an account.',
+      codeLabel: 'Your participant code',
+      secretLabel: 'Your secret code · don\'t share it',
+      codeNotice: 'Take a screenshot of this screen now and keep it. The codes are not saved anywhere and won\'t be shown again.',
+      codeAnnounce: 'The winners\' participant codes will be announced on Instagram (@feast_tr).',
+      codePending: 'Saving your codes…',
+      codeError: 'Your codes couldn\'t be saved. Check your connection and try again.',
+      codeRetry: 'Try again',
+      contestClosed: 'The contest has ended. The winners will be announced on Instagram (@feast_tr).',
+      againConfirm: 'Did you take a screenshot of your codes?',
       rewardDownload: 'Get feast',
       rewardTagline: 'A small step, a big feast',
       rewardPlaceCampus: '📍 {campus}',

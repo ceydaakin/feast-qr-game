@@ -185,7 +185,7 @@
   <!-- REWARD FLOW: unlocked reward -->
   <!-- Download page after the box opens: big title, the open gift glowing,
        one big yellow download button, both store badges. No QR. -->
-  <section id="reward" class="screen reward-screen">
+  <section id="reward" class="screen reward-screen scrollable">
     <div class="confetti" aria-hidden="true">
       <i style="--x:6%;--y:34%;--r:-30deg;--c:#ff4d6d"></i>
       <i style="--x:14%;--y:12%;--r:40deg;--c:#ffc83d"></i>
@@ -204,6 +204,15 @@
       <div class="reward-head">
         <h2 class="reward-title" data-i18n="rewardTitle"></h2>
         <p class="reward-sub" data-i18n="rewardSub"></p>
+      </div>
+      <div class="reward-cta">
+        <!-- Always goes to get.feast.tr (REWARD_CONFIG.downloadUrl), on every device. -->
+        <!-- New tab, so the contest codes stay on this screen. -->
+        <a class="btn reward-download" data-store-main href="https://get.feast.tr" target="_blank" rel="noopener">
+          <svg class="dl-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0-4.5-4.5M12 14l4.5-4.5M5 17v2.5h14V17" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span data-i18n="rewardDownload"></span>
+        </a>
+        <p class="reward-tagline"><span data-i18n="rewardTagline"></span> <span class="heart" aria-hidden="true">♡</span></p>
       </div>
       <!-- The gift with the unlocked places floating gently around it. -->
       <div class="gift-stage">
@@ -233,17 +242,25 @@
         <span class="float-word float-more" style="--d:.95s;--r:-4deg;--t:3.8s;right:0;top:64%" data-i18n="rewardMore"></span>
       </div>
       <div class="reward-actions">
-        <!-- Always goes to get.feast.tr (REWARD_CONFIG.downloadUrl), on every device. -->
-        <a class="btn reward-download" data-store-main href="https://get.feast.tr" target="_top" rel="noopener">
-          <svg class="dl-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0-4.5-4.5M12 14l4.5-4.5M5 17v2.5h14V17" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span data-i18n="rewardDownload"></span>
-        </a>
-        <p class="reward-tagline"><span data-i18n="rewardTagline"></span> <span class="heart" aria-hidden="true">♡</span></p>
-        <a class="reward-terms" data-terms hidden target="_blank" rel="noopener" data-i18n="rewardTerms"></a>
+        <!-- Contest codes (js/contest.js): only after a full 45 s round, shown once
+             the server acknowledged them. Memory + screen only; cleared on leave.
+             data-state: pending | ok | error | closed -->
+        <div id="codes" class="codes" hidden aria-live="polite">
+          <p class="code-valid" data-show="ok" data-i18n="codeValidNote"></p>
+          <p class="codes-msg" data-show="pending" data-i18n="codePending"></p>
+          <p class="codes-msg" data-show="error" data-i18n="codeError"></p>
+          <button id="btn-codes-retry" class="link-btn" type="button" data-show="error" data-i18n="codeRetry"></button>
+          <p class="codes-msg" data-show="closed" data-i18n="contestClosed"></p>
+          <div class="code-card" data-show="ok"><span class="code-label" data-i18n="codeLabel"></span><output id="code-public" class="code-value"></output></div>
+          <div class="code-card code-secret" data-show="ok"><span class="code-label">🔒 <span data-i18n="secretLabel"></span></span><output id="code-secret" class="code-value"></output></div>
+          <p class="code-notice" data-show="ok">📸 <span data-i18n="codeNotice"></span></p>
+          <p class="code-announce" data-show="ok" data-i18n="codeAnnounce"></p>
+        </div>
         <p class="reward-meta">
           <span id="reward-score"></span>
           <button class="link-btn" type="button" data-action="again" data-i18n="again"></button>
           <button class="link-btn" type="button" data-action="share" data-i18n="share"></button>
+          <a class="link-btn" data-terms hidden target="_blank" rel="noopener" data-i18n="rewardTerms"></a>
         </p>
       </div>
     </div>

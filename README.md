@@ -13,7 +13,9 @@ Tek oyun var; her link aynı akışı açar (`?src=` sadece analytics / mağaza 
 5. **"feast nedir?" animasyonu (8 sn, atlanamaz):** @feast_tr "feast nedir?" öne çıkanı stilinde — "Bugün ne yesek?" → "Nerede? Ne? Kaça?" → harita → KAYDIR (Reels gibi tam ekran yemekler) → arkadaş sohbeti. Hareketi azaltmış cihazlar doğrudan ödül sayfasına geçer.
 6. **Ödül sayfası:** "3 adet AirPods 5 hediye!" + **feast'i indir** (her cihazda `https://get.feast.tr`).
 
-Süreler, metinler, Reels yemekleri, çekiliş koşulları linki (`termsUrl`): `js/reward-config.js`.
+Süreler, metinler, Reels yemekleri, "Detaylar" linki (`termsUrl` → `sartname.html`): `js/reward-config.js`.
+
+**Yarışma kodları:** 45 sn tamamlanınca tarayıcı yarışmacı kodu (6 karakter, zamandan) + gizli kod (4 karakter, `crypto`) üretir ve `js/contest.js` ile `POST https://games-feast-tr-results.cloud.run/verify` adresine yollar (409 → yeni yarışmacı kodu, ağ hatası → aynı kodlarla tekrar). Kodlar sunucu onaylayınca ödül sayfasında gösterilir; sadece bellekte durur (storage/URL/log/analytics yok). Şartname: `sartname.html`.
 
 ## Dil
 Oyun **her cihazda Türkçe** açılır (tarayıcı dili ne olursa olsun). İngilizce sürüm için linke `?lang=en` ekle. Tüm metinler `js/i18n.js` içinde (`tr` kaynak, `en` çeviri).

@@ -194,8 +194,9 @@ test('campus fills the reward copy; İTÜ/ITU by default', () => {
   assert.equal(rewardT('en')('introLead'), 'For ITU students');
   assert.equal(rewardT('tr', 'ODTÜ')('introLead'), 'ODTÜ\'lülere özel');
   assert.equal(rewardT('en', 'ODTÜ')('introLead'), 'For ODTÜ students');
-  assert.match(rewardT('tr', 'ODTÜ')('rewardSub'), /ODTÜ'de çekilişe/);
-  assert.match(rewardT('en', 'ODTÜ')('rewardSub'), /the ODTÜ draw/);
+  assert.equal(rewardT('tr')('rewardSub'), 'Uygulamayı indir, hesabını aç! 🎧');
+  assert.equal(rewardT('tr')('readyHot'), 'SÜRPRİZİ GÖR!');
+  assert.doesNotMatch(REWARD_KEYS.map((k) => String(rewardT('tr')(k))).join(' '), /çekiliş/);
 });
 
 test('promise frame reads "Yeni döneme ÖDÜLLE başla"', () => {

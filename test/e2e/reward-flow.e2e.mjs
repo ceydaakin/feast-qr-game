@@ -189,7 +189,7 @@ try {
     await page.click('#intro', { position: { x: 5, y: 5 } });
     assert.match(await page.textContent('[data-frame="ready"] .intro-lead'), /ODTÜ'lülere özel/);
     await forceReward(page);
-    assert.match(await page.textContent('.reward-sub'), /ODTÜ'de çekilişe/);
+    assert.match(await page.textContent('.reward-sub'), /hesabını aç/);
     await page.close();
   });
 
@@ -199,7 +199,8 @@ try {
     assert.match(await page.textContent('.reward-title'), /3 adet AirPods\s5 hediye!/);
     assert.equal(await page.isVisible('#reward .gift-open'), true);
     assert.equal(await page.isVisible('#reward .pods'), true);
-    assert.equal(await page.isVisible('[data-terms]'), false, 'terms link hidden until termsUrl is set');
+    assert.equal(await page.getAttribute('[data-terms]', 'href'), 'sartname.html', 'Detaylar → şartname');
+    assert.equal(await page.isVisible('#codes'), false, 'no codes without a finished round');
     assert.equal(await page.isVisible('[data-store-main]'), true);
     assert.equal(await page.locator('#reward .reward-chat, #reward .chef-sticker').count(), 0);
     await page.close();

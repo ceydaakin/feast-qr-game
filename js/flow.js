@@ -28,6 +28,7 @@ export const REWARD_KEYS = Object.freeze([
   'exHook', 'exSlogan', 'exMap', 'exReels', 'exSticker', 'exSeeMap', 'exFriends', 'exChat',
   'rewardTitle', 'rewardSub', 'rewardTerms', 'rewardDownload', 'rewardTagline', 'rewardPlaceCampus', 'rewardMore',
   'retryTitle', 'retrySub', 'retryButton', 'retryTip', 'rewardScore',
+  'codeValidNote', 'codeLabel', 'secretLabel', 'codeNotice', 'codeAnnounce', 'codePending', 'codeError', 'codeRetry', 'contestClosed', 'againConfirm',
 ]);
 
 // The spiral intro plays on every visit (tap skips it). Only visitors who

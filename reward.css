@@ -359,7 +359,7 @@ html[data-theme="itu"] {
    one big yellow "feast'i indir" button, App Store + Google Play badges.
    Fits one screen with no scrolling; sizes follow the viewport height too. */
 .reward-screen {
-  overflow: hidden;
+  overflow-y: auto; /* fits one screen; scrolls only when the contest codes are shown */
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   background:
@@ -555,7 +555,7 @@ html[data-theme="itu"] {
 .dl-icon { flex: none; width: 1.15em; height: 1.15em; }
 .reward-tagline { margin: 0; font-weight: 700; font-size: 14px; color: var(--ink); opacity: .85; }
 .reward-tagline .heart { color: var(--red); font-weight: 900; }
-.reward-meta { margin: 0; display: flex; align-items: center; justify-content: center; gap: 14px; font-size: 13px; font-weight: 800; color: rgba(58, 29, 16, .6); }
+.reward-meta { margin: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px 14px; font-size: 13px; font-weight: 800; color: rgba(58, 29, 16, .6); }
 .link-btn { border: 0; background: none; padding: 4px 2px; font: 800 13px var(--font); color: var(--ink); text-decoration: underline; cursor: pointer; }
 .link-btn[hidden] { display: none; }
 .reward-meta > * { white-space: nowrap; }
@@ -1029,3 +1029,25 @@ html[data-theme="itu"] {
   rotate: 10deg;
 }
 .reward-screen.is-active .pods-badge { animation: wordHit .4s cubic-bezier(.2, .9, .3, 1.8) .9s both, giftBob 2s ease-in-out 1.3s infinite; }
+
+/* ---------- contest codes on the prize page (js/contest.js) ---------- */
+.codes { width: 100%; display: grid; gap: 8px; }
+.codes[hidden], .codes [data-show] { display: none; }
+.codes[data-state="pending"] [data-show="pending"], .codes[data-state="error"] [data-show="error"],
+.codes[data-state="closed"] [data-show="closed"], .codes[data-state="ok"] [data-show="ok"] { display: block; }
+.codes[data-state="ok"] .code-card { display: grid; }
+.codes[data-state="error"] .link-btn { justify-self: center; }
+.codes-msg { margin: 0; font-weight: 800; font-size: 15px; color: var(--ink); }
+.code-card { gap: 2px; padding: 8px 14px; border: 3px solid var(--ink); border-radius: 16px; background: #fff; box-shadow: 0 4px 0 var(--ink); }
+.code-secret { background: #fff4d6; }
+.code-label { font-weight: 800; font-size: 13px; color: var(--ink); }
+.code-value { font: 900 clamp(28px, 9vw, 38px)/1.1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: .14em; color: var(--ink); user-select: all; }
+.code-notice { margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--red); color: #fff; font-weight: 900; font-size: 14px; line-height: 1.3; }
+.code-announce { margin: 0; font-weight: 700; font-size: 13px; line-height: 1.35; color: var(--ink); }
+@media (orientation: landscape) and (max-height: 500px) { .codes { grid-column: 1 / -1; } }
+
+/* Download button sits right under the title; the codes sit above the meta row. */
+.reward-cta { width: 100%; display: grid; justify-items: center; gap: clamp(8px, 1.6dvh, 12px); }
+.codes[data-state="ok"] .code-valid { display: block; }
+.code-valid { margin: 0; padding: 8px 12px; border: 2px dashed var(--ink); border-radius: 12px; background: #fff; font-weight: 900; font-size: 14px; line-height: 1.3; color: var(--ink); }
+@media (orientation: landscape) and (max-height: 500px) { .reward-cta { grid-column: 2; } }

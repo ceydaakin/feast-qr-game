@@ -11,6 +11,7 @@ import { introPlan, EXPLAINER_STEPS } from './flow.js';
 import { REWARD_CONFIG } from './reward-config.js';
 import { themeStringsWithReward } from './campus.js';
 import { playIntro, openBoxScreen, playExplainer } from './reward-ui.js';
+import { newCodes, submitCodes } from './contest.js';
 import { loadSpriteOverrides } from './sprites.js';
 import { setGameFont, loadGameFont } from './fonts.js';
 
@@ -20,6 +21,10 @@ const BUMP_MIN = 5;
 const RESIZE_DEBOUNCE_MS = 150;
 const BUMP_FRAMES = [{ transform: 'scale(1)' }, { transform: 'scale(1.18)' }, { transform: 'scale(1)' }];
 const $ = (sel) => document.querySelector(sel);
+
+// Contest codes live in memory only (never storage, URLs, logs or analytics):
+// a reload loses them, on purpose. See contest.js.
+const contest = { submission: null, retryCodes: null, closed: false, showing: false };
 
 const params = new URLSearchParams(location.search);
 const source = (params.get('src') || 'qr_game').replace(/[^\w-]/g, '').slice(0, 40) || 'qr_game';
@@ -195,6 +200,46 @@ function showReward(result) {
   $('#reward').scrollTo(0, 0);
   showScreen('reward');
   track('reward_view', { score: result.score });
+  showCodes();
+}
+
+// Codes appear only after the server acknowledged them; every 2xx looks the
+// same, so the page never tells whether this player won.
+function setCodesState(state) {
+  const box = $('#codes');
+  box.hidden = !state;
+  if (state) box.dataset.state = state;
+}
+
+async function showCodes() {
+  if (!contest.submission) return;
+  setCodesState('pending');
+  const { status, codes } = await contest.submission;
+  contest.submission = null;
+  if (status === 'closed') contest.closed = true;
+  if (status === 'error') contest.retryCodes = codes; // the retry resends the same pair
+  if (status === 'ok') {
+    $('#code-public').textContent = codes.code;
+    $('#code-secret').textContent = codes.secret;
+    contest.showing = true;
+  }
+  setCodesState(status);
+}
+
+function retryCodes() {
+  if (!contest.retryCodes) return;
+  contest.submission = submitCodes(contest.retryCodes);
+  contest.retryCodes = null;
+  showCodes();
+}
+
+// Leaving the prize page wipes the codes; they are never shown again.
+function clearCodes() {
+  contest.showing = false;
+  contest.retryCodes = null;
+  $('#code-public').textContent = '';
+  $('#code-secret').textContent = '';
+  setCodesState(null);
 }
 
 async function share(score, btn) {
@@ -295,6 +340,9 @@ async function boot() {
     onEnd: (result) => {
       lastScore = result.score;
       track('end', { score: result.score, reason: result.reason });
+      // Full 45 s (and the contest still open) → a fresh pair of codes, sent
+      // while the box and explainer play. Losing early sends nothing.
+      if (result.reason === 'time' && !contest.closed) contest.submission = submitCodes(newCodes());
       setTimeout(() => endRewardRound(result), 450);
     },
   });
@@ -315,7 +363,12 @@ async function boot() {
   };
   rewardStart.play = play;
   if (rewardStart.queued) play();
-  document.querySelectorAll('[data-action="again"]').forEach((b) => b.addEventListener('click', play));
+  document.querySelectorAll('[data-action="again"]').forEach((b) => b.addEventListener('click', () => {
+    if (contest.showing && !window.confirm(t('againConfirm'))) return;
+    clearCodes();
+    play();
+  }));
+  $('#btn-codes-retry').addEventListener('click', retryCodes);
   const canShare = Boolean(navigator.share || navigator.clipboard);
   document.querySelectorAll('[data-action="share"]').forEach((b) => {
     b.hidden = !canShare;
